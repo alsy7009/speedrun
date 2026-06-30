@@ -6,12 +6,15 @@ mod gathering;
 pub(crate) mod intersperser;
 pub(crate) mod sized_chain;
 mod sorting;
+mod topic_interleaver;
 
 use std::collections::HashMap;
 use std::collections::VecDeque;
 
 use intersperser::Intersperser;
 use sized_chain::SizedChain;
+use topic_interleaver::interleave_by_topic;
+use topic_interleaver::NO_TOPIC;
 
 use super::BuryMode;
 use super::CardQueues;
@@ -100,6 +103,7 @@ pub(super) struct QueueSortOptions {
     pub(super) review_order: ReviewCardOrder,
     pub(super) day_learn_mix: ReviewMix,
     pub(super) new_review_mix: ReviewMix,
+    pub(super) topic_interleaving: bool,
 }
 
 #[derive(Debug)]
@@ -111,6 +115,8 @@ pub(super) struct QueueBuilder {
     limits: LimitTreeMap,
     load_balancer: Option<LoadBalancer>,
     context: Context,
+    /// note_id -> small topic id; populated only when topic interleaving is on.
+    topic_of_note: HashMap<NoteId, i64>,
 }
 
 /// Data container and helper for building queues.
@@ -171,6 +177,7 @@ impl QueueBuilder {
             day_learning: Vec::new(),
             limits,
             load_balancer,
+            topic_of_note: HashMap::new(),
             context: Context {
                 timing,
                 config_map,
@@ -185,6 +192,16 @@ impl QueueBuilder {
 
     pub(super) fn build(mut self, learn_ahead_secs: i64) -> CardQueues {
         self.sort_new();
+
+        // Speedrun: after the standard sort, interleave by topic so consecutive
+        // review/new cards require different strategies. Only the gathered
+        // vectors are permuted — FSRS state, due dates, and counts are untouched.
+        if self.context.sort_options.topic_interleaving {
+            let topic_of_note = std::mem::take(&mut self.topic_of_note);
+            let topic = |note_id: NoteId| topic_of_note.get(&note_id).copied().unwrap_or(NO_TOPIC);
+            interleave_by_topic(&mut self.review, |c| topic(c.note_id));
+            interleave_by_topic(&mut self.new, |c| topic(c.note_id));
+        }
 
         // intraday learning and total learn count
         let intraday_learning = sort_learning(self.learning);
@@ -233,6 +250,7 @@ fn sort_options(deck: &Deck, config_map: &HashMap<DeckConfigId, DeckConfig>) -> 
             review_order: config.inner.review_order(),
             day_learn_mix: config.inner.interday_learning_mix(),
             new_review_mix: config.inner.new_mix(),
+            topic_interleaving: config.inner.topic_interleaving,
         })
         .unwrap_or_else(|| {
             // filtered decks do not space siblings
@@ -286,6 +304,19 @@ impl Collection {
             .update_active_decks(&queues.context.root_deck)?;
 
         queues.gather_cards(self)?;
+
+        // Speedrun: when topic interleaving is enabled, prefetch each gathered
+        // card's topic (from its note's `topic::<name>` tag) so build() can
+        // permute the queue without needing collection access.
+        if queues.context.sort_options.topic_interleaving {
+            let mut note_ids: Vec<NoteId> =
+                Vec::with_capacity(queues.review.len() + queues.new.len());
+            note_ids.extend(queues.review.iter().map(|c| c.note_id));
+            note_ids.extend(queues.new.iter().map(|c| c.note_id));
+            note_ids.sort_unstable_by_key(|n| n.0);
+            note_ids.dedup();
+            queues.topic_of_note = topic_interleaver::topic_ids_for_notes(self, &note_ids)?;
+        }
 
         let queues = queues.build(self.learn_ahead_secs() as i64);
 
@@ -353,6 +384,21 @@ mod test {
                 .map(|entry| {
                     let card = self.storage.get_card(entry.card_id()).unwrap().unwrap();
                     (card.due, card.interval)
+                })
+                .collect()
+        }
+
+        fn queue_topics(&mut self, deck_id: DeckId) -> Vec<String> {
+            self.build_queues(deck_id)
+                .unwrap()
+                .iter()
+                .map(|entry| {
+                    let card = self.storage.get_card(entry.card_id()).unwrap().unwrap();
+                    let note = self.storage.get_note(card.note_id).unwrap().unwrap();
+                    note.tags
+                        .iter()
+                        .find_map(|t| t.strip_prefix("topic::").map(str::to_string))
+                        .unwrap_or_default()
                 })
                 .collect()
         }
@@ -471,6 +517,47 @@ mod test {
         col.update_cards_maybe_undoable(cards, false)?;
         col.set_deck_review_order(&mut deck, ReviewCardOrder::RelativeOverdueness);
         assert_eq!(col.queue_as_due_and_ivl(deck.id), expected_queue);
+
+        Ok(())
+    }
+
+    #[test]
+    fn topic_interleaving_separates_adjacent_cards() -> Result<()> {
+        let mut col = Collection::new();
+        let deck = col.get_or_create_normal_deck("Default").unwrap();
+        let nt = col.get_notetype_by_name("Basic")?.unwrap();
+
+        // Blocked input: three "a"-topic cards then three "b"-topic cards.
+        for tag in [
+            "topic::a", "topic::a", "topic::a", "topic::b", "topic::b", "topic::b",
+        ] {
+            let mut note = nt.new_note();
+            note.set_field(0, "q")?;
+            note.tags.push(tag.to_string());
+            col.add_note(&mut note, deck.id)?;
+        }
+
+        // Baseline (interleaving off): order follows insertion, i.e. blocked.
+        col.update_default_deck_config(|config| {
+            config.new_card_sort_order = NewCardSortOrder::NoSort as i32;
+            config.topic_interleaving = false;
+        });
+        assert_eq!(
+            col.queue_topics(deck.id),
+            vec!["a", "a", "a", "b", "b", "b"]
+        );
+
+        // Interleaving on: consecutive cards must differ in topic.
+        col.update_default_deck_config(|config| {
+            config.topic_interleaving = true;
+        });
+        let mixed = col.queue_topics(deck.id);
+        assert_eq!(mixed.len(), 6);
+        assert_eq!(
+            mixed.windows(2).filter(|w| w[0] == w[1]).count(),
+            0,
+            "consecutive cards should differ in topic: {mixed:?}"
+        );
 
         Ok(())
     }

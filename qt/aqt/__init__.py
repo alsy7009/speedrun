@@ -112,6 +112,11 @@ import aqt.forms
 
 from aqt import addcards, addons, browser, editcurrent, filtered_deck  # isort:skip
 from aqt import stats, about, preferences, mediasync  # isort:skip
+from aqt import speedrun_tracking  # isort:skip
+from aqt import speedrun_decks  # isort:skip
+
+speedrun_tracking.init()
+speedrun_decks.init()
 
 
 class DialogManager:

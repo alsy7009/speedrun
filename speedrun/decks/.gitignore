@@ -1,0 +1,3 @@
+# Generated decks contain MAA-copyrighted problem content; don't commit them.
+# Regenerate with: speedrun/build_all_decks.py
+*.apkg

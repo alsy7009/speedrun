@@ -166,6 +166,10 @@ message DeckConfig {
 
     ReviewMix interday_learning_mix = 31;
 
+    // Speedrun: interleave consecutive due/new cards across topics, derived from
+    // each note's `topic::<name>` tag, so adjacent cards need different strategies.
+    bool topic_interleaving = 47;
+
     LeechAction leech_action = 21;
     uint32 leech_threshold = 22;
 

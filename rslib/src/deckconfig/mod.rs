@@ -59,6 +59,7 @@ const DEFAULT_DECK_CONFIG_INNER: DeckConfigInner = DeckConfigInner {
     review_order: ReviewCardOrder::Day as i32,
     new_mix: ReviewMix::MixWithReviews as i32,
     interday_learning_mix: ReviewMix::MixWithReviews as i32,
+    topic_interleaving: false,
     leech_action: LeechAction::TagOnly as i32,
     leech_threshold: 8,
     disable_autoplay: false,
