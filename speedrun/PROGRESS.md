@@ -5,6 +5,19 @@ See [prd.md](../prd.md) and [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) 
 
 ---
 
+## Mobile repos (published)
+
+Three repos, mirroring upstream's split:
+- **Engine + desktop:** `alsy7009/speedrun` (this repo) — home of `rslib` with our changes.
+- **AnkiDroid app fork:** `alsy7009/speedrun-ankidroid` — bundled AMC tier decks + picker.
+- **Backend fork:** `alsy7009/speedrun-anki-backend` — its `anki` submodule → `alsy7009/speedrun`.
+
+Others build mobile by cloning the two mobile repos side by side, then:
+`cd speedrun-anki-backend && git submodule update --init --recursive && ./build.sh`,
+then in `speedrun-ankidroid` set `local_backend=true` and build the APK.
+(The `0.1.65-anki26.05b1` backend isn't on Maven, so a local backend build is required.)
+Fork snapshots were pushed as single root commits (`--no-verify`, dropping upstream CI workflows).
+
 ## Mobile (AnkiDroid) — in progress
 
 - **M0 toolchain (done):** JDK 17, Android SDK (platform 35/36, build-tools,
