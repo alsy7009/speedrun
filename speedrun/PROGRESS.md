@@ -17,10 +17,14 @@ See [prd.md](../prd.md) and [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) 
   as app assets. New `SpeedrunDecks.kt` + `DeckPicker.kt` hooks: **auto-import all
   three tier folders on first launch** (guarded by a pref), and an **"Import AMC
   decks"** item in the deck-list ⋮ menu to re-add a tier. Rebuilt OK.
-- **M2 (deferred, DECISION NEEDED):** our fork is Anki **26.05**; AnkiDroid pins backend
-  **`anki-android-backend:0.1.64-anki25.09.2`**. To ship our interleaving + topic
-  scheduling to the phone we must build `Anki-Android-Backend` from Rust (NDK cross-
-  compile) with matching proto/service versions. Options logged in the M2 todo.
+- **M2 shared engine on mobile (done):** built a **custom `rsdroid-release.aar`** from
+  our 26.05 fork via `Anki-Android-Backend` (NDK 29 cross-compile of `rslib`), pointing
+  its `anki/` submodule at our fork so the **single engine source** ships to mobile.
+  AnkiDroid consumes it via `local_backend=true` (+ bumped `ankiBackend` to
+  `0.1.65-anki26.05b1`; one enum-skew fix in `libanki/Deck.kt`). APK rebuilt and
+  launches on the emulator with **no native/JNI crash** — so topic interleaving +
+  topic scheduling now run on the phone (defaults are ON in the 26.05 deck config).
+  Confirm interleaved order interactively by studying a deck.
 - **M3 (todo):** self-host `anki-sync-server`; sync desktop ↔ phone both ways.
 
 ---
