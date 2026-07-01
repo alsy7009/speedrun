@@ -12,8 +12,11 @@ See [prd.md](../prd.md) and [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) 
 - **M1 build+run (done):** AnkiDroid cloned to `speedrun/out/Anki-Android` (gitignored);
   built our `full-debug` APKs (per ABI) against the shared Rust backend; installed +
   launched on the emulator. `speedrun/mobile.sh` boots the emulator, installs the APK,
-  and pushes the AMC deck — then import + study interactively (MC cards render on
-  AnkiDroid; JS + MathJax supported).
+  and pushes the AMC deck.
+- **In-app decks (done):** the 3 AMC **tier** decks (`AMC_8/10/12.apkg`) are bundled
+  as app assets. New `SpeedrunDecks.kt` + `DeckPicker.kt` hooks: **auto-import all
+  three tier folders on first launch** (guarded by a pref), and an **"Import AMC
+  decks"** item in the deck-list ⋮ menu to re-add a tier. Rebuilt OK.
 - **M2 (deferred, DECISION NEEDED):** our fork is Anki **26.05**; AnkiDroid pins backend
   **`anki-android-backend:0.1.64-anki25.09.2`**. To ship our interleaving + topic
   scheduling to the phone we must build `Anki-Android-Backend` from Rust (NDK cross-
@@ -24,15 +27,18 @@ See [prd.md](../prd.md) and [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) 
 
 ## All AMC decks + in-app deck picker
 
-- `speedrun/build_all_decks.py` — generates one `.apkg` per AMC contest (AMC 8/10/10A/
-  10B/12/12A/12B + AHSME/AJHSME), each with a subdeck per year, plus
-  `speedrun/decks/manifest.json`. From HARP: **9 decks, 4,110 problems**.
-  `build_deck.py` refactored into reusable `add_problem` / `build_decks`.
-- `qt/aqt/speedrun_decks.py` (+ registered in `qt/aqt/__init__.py`) — adds
-  **Tools → "Speedrun: Add AMC Decks…"**, a dialog that lists contests (problem
-  count, year range, topic mix) with checkboxes, an **"Add starter set"** button
-  (AMC 8 / 10A / 12A pre-checked), and imports the chosen `.apkg`s into the
-  collection. Generated `.apkg`s are gitignored (MAA content); regenerate locally.
+- `speedrun/build_all_decks.py` — generates one `.apkg` per **difficulty tier**
+  (AMC 8 / AMC 10 / AMC 12), each a folder of full-named subdecks
+  (`Speedrun::AMC 10::AMC 10A 2023`). A/B variants + predecessors (AHSME→AMC 12,
+  AJHSME→AMC 8) fold into the tier. From HARP: **3 tier decks, 4,110 problems**
+  (AMC 8: 915, AMC 10: 697, AMC 12: 2498). `build_deck.py` refactored into reusable
+  `add_problem` / `build_decks`.
+- `qt/aqt/speedrun_decks.py` (+ registered in `qt/aqt/__init__.py`) — a top-toolbar
+  **"AMC Decks"** button / Tools menu that lists contests (problem count, year range,
+  topic mix) with checkboxes + an **"Add starter set"** button, and imports the
+  chosen `.apkg`s. **Auto-imports the 3 tier folders (AMC 8 / AMC 10 / AMC 12) on
+  first collection load** (guarded by a config marker) — mirrors the Android app.
+  Decks nest as `Speedrun::AMC 10::AMC 10A 2023`. Generated `.apkg`s are gitignored.
 - `qt/aqt/speedrun_settings.py` (+ registered in `qt/aqt/__init__.py`) — a
   **"Settings"** top-toolbar button / Tools-menu entry opening a dialog with
   checkboxes: **Enable FSRS** (seeds default params so answering can't break),

@@ -31,12 +31,19 @@ adb wait-for-device
 until [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; do sleep 3; done
 echo "Booted."
 
+# `--reset` wipes AnkiDroid's collection so the new tier decks (AMC 8 / 10 / 12)
+# import from a clean state — use this to clear leftover old-structure decks.
+if [ "${1:-}" = "--reset" ] || [ "${RESET:-}" = "1" ]; then
+  echo "Resetting AnkiDroid data (clean first-run)..."
+  adb shell pm clear com.ichi2.anki.debug >/dev/null 2>&1 || true
+fi
+
 adb install -r -t "$APK"
 
 echo "Pushing decks to /sdcard/Download ..."
 adb shell mkdir -p /sdcard/Download >/dev/null 2>&1 || true
 pushed=0
-for f in "$REPO"/speedrun/decks/*.apkg "$REPO"/speedrun/out/amc_10a_2022.apkg; do
+for f in "$REPO"/speedrun/decks/*.apkg; do
   [ -f "$f" ] || continue
   if adb push "$f" "/sdcard/Download/$(basename "$f")" >/dev/null 2>&1; then
     echo "  + $(basename "$f")"
@@ -49,13 +56,13 @@ cat <<'EOF'
 
 Ready. In the emulator:
   1. Open AnkiDroid, tap "Get started" (you can skip AnkiWeb sync).
-  2. Import a deck: tap the top-right overflow menu (three dots) -> "Import",
-     (or open Files -> Download and tap an .apkg), pick a file such as
-     AMC_10A.apkg, then choose "Add". Repeat for each deck you want.
-  3. Open e.g. "Speedrun::AMC 10A" -> Study. The multiple-choice cards are
-     interactive: tap a choice to reveal the worked solution + correct answer.
+  2. The three tier folders (AMC 8, AMC 10, AMC 12) import automatically on
+     first launch. To (re-)add one manually: overflow menu (three dots) ->
+     "Import AMC decks" -> pick a tier.
+  3. Open e.g. "Speedrun::AMC 10 -> AMC 10A 2023" -> Study. The multiple-choice
+     cards are interactive: tap a choice to reveal the worked solution.
 
 Note: topic interleaving / topic-aware scheduling are NOT active on mobile yet
-(that is M2 - building our Rust backend for Android, deferred). The deck and the
+(that is M2 - building our Rust backend for Android, deferred). The decks and the
 interactive MC cards work on the stock engine.
 EOF

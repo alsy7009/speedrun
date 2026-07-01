@@ -64,13 +64,6 @@ def _topic_summary(topics: dict[str, int]) -> str:
     return " · ".join(parts)
 
 
-def _years_label(deck: dict[str, Any]) -> str:
-    years = [str(y) for y in deck.get("years", [])]
-    if not years:
-        return ""
-    return f"{years[0]}–{years[-1]}" if len(years) > 1 else years[0]
-
-
 class AmcDeckDialog(QDialog):
     def __init__(self, mw: Any) -> None:
         super().__init__(mw)
@@ -111,8 +104,8 @@ class AmcDeckDialog(QDialog):
         for deck in manifest["decks"]:
             available = (DECKS_DIR / deck["file"]).exists()
             label = (
-                f"<b>{deck['contest']}</b>{' ★' if deck.get('starter') else ''}"
-                f" — {deck['problem_count']} problems · {_years_label(deck)}"
+                f"<b>{deck['tier']}</b>{' ★' if deck.get('starter') else ''}"
+                f" — {deck['problem_count']} problems · {deck.get('deck_count', 0)} decks"
                 f"<br><span style='color:#888'>{_topic_summary(deck.get('topics', {}))}</span>"
             )
             if not available:
@@ -140,7 +133,7 @@ class AmcDeckDialog(QDialog):
         line.setFrameShape(QFrame.Shape.HLine)
         layout.addWidget(line)
 
-        starter_btn = QPushButton("Add starter set (AMC 8, 10A, 12A)")
+        starter_btn = QPushButton("Add all tiers (AMC 8, 10, 12)")
         qconnect(starter_btn.clicked, self._add_starter)
         layout.addWidget(starter_btn)
 
@@ -222,6 +215,40 @@ def _on_top_toolbar_init_links(links: list[str], toolbar: Any) -> None:
     )
 
 
+def _import_starters_once(col: Any) -> None:
+    """Auto-import the AMC tier decks (AMC 8 / AMC 10 / AMC 12) the first time a
+    collection loads, mirroring the Android app. Each tier folder contains every
+    contest+year as a full-named subdeck (e.g. `AMC 10A 2023`). Guarded by a
+    config marker so later manual changes are respected.
+    """
+    try:
+        if col.get_config("speedrun_tier_decks_imported", False):
+            return
+        manifest = _load_manifest()
+        if not manifest:
+            return
+        for deck in manifest.get("decks", []):
+            if not deck.get("starter"):
+                continue
+            path = DECKS_DIR / deck["file"]
+            if not path.exists():
+                continue
+            col.import_anki_package(
+                import_export_pb2.ImportAnkiPackageRequest(
+                    package_path=str(path),
+                    options=import_export_pb2.ImportAnkiPackageOptions(
+                        merge_notetypes=True,
+                        with_scheduling=False,
+                        with_deck_configs=False,
+                    ),
+                )
+            )
+        col.set_config("speedrun_tier_decks_imported", True)
+    except Exception as exc:  # never block collection load over deck seeding
+        print(f"speedrun tier deck import error: {exc}")
+
+
 def init() -> None:
     gui_hooks.main_window_did_init.append(_on_main_window_did_init)
     gui_hooks.top_toolbar_did_init_links.append(_on_top_toolbar_init_links)
+    gui_hooks.collection_did_load.append(_import_starters_once)
