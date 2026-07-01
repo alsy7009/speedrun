@@ -52,17 +52,21 @@ for f in "$REPO"/speedrun/decks/*.apkg; do
 done
 echo "Pushed $pushed deck file(s)."
 
+echo "Launching AnkiDroid..."
+adb shell monkey -p com.ichi2.anki.debug -c android.intent.category.LAUNCHER 1 >/dev/null 2>&1 || true
+
 cat <<'EOF'
 
 Ready. In the emulator:
   1. Open AnkiDroid, tap "Get started" (you can skip AnkiWeb sync).
-  2. The three tier folders (AMC 8, AMC 10, AMC 12) import automatically on
-     first launch. To (re-)add one manually: overflow menu (three dots) ->
-     "Import AMC decks" -> pick a tier.
-  3. Open e.g. "Speedrun::AMC 10 -> AMC 10A 2023" -> Study. The multiple-choice
+  2. The three Mixed sets (AMC 8/10/12 + GRE, interleaved) import automatically
+     on first launch. To add the dedicated AMC-only or GRE-only sets: overflow
+     menu (three dots) -> "Import Speedrun decks".
+  3. Open e.g. "Speedrun::Mixed -> AMC 10 + GRE" -> Study. The multiple-choice
      cards are interactive: tap a choice to reveal the worked solution.
+  4. Scores: overflow menu -> "Speedrun scores" (Memory / Performance /
+     Readiness; abstains until you have enough data).
 
-Note: topic interleaving / topic-aware scheduling are NOT active on mobile yet
-(that is M2 - building our Rust backend for Android, deferred). The decks and the
-interactive MC cards work on the stock engine.
+The app runs our shared Rust engine, so topic interleaving and topic-aware
+scheduling are active on mobile (on by default in the deck config).
 EOF
