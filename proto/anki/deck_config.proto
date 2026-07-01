@@ -170,6 +170,14 @@ message DeckConfig {
     // each note's `topic::<name>` tag, so adjacent cards need different strategies.
     bool topic_interleaving = 47;
 
+    // Speedrun: topic-aware scheduling. When enabled, shorten the next review
+    // interval for weak (high FSRS difficulty) `topic::`-tagged cards so they
+    // return sooner. FSRS memory state is left untouched.
+    // `topic_weak_interval_factor` is the interval multiplier applied to the
+    // hardest cards (1.0 = no change; e.g. 0.5 = up to half as long).
+    bool topic_scheduling = 48;
+    float topic_weak_interval_factor = 49;
+
     LeechAction leech_action = 21;
     uint32 leech_threshold = 22;
 

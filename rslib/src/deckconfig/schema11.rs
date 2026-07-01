@@ -70,6 +70,10 @@ pub struct DeckConfSchema11 {
     bury_interday_learning: bool,
     #[serde(default)]
     topic_interleaving: bool,
+    #[serde(default)]
+    topic_scheduling: bool,
+    #[serde(default)]
+    topic_weak_interval_factor: f32,
 
     #[serde(default, rename = "fsrsWeights")]
     fsrs_params_4: Vec<f32>,
@@ -308,7 +312,9 @@ impl Default for DeckConfSchema11 {
             new_sort_order: 0,
             new_gather_priority: 0,
             bury_interday_learning: false,
-            topic_interleaving: false,
+            topic_interleaving: true,
+            topic_scheduling: true,
+            topic_weak_interval_factor: 0.5,
             fsrs_params_4: vec![],
             fsrs_params_5: vec![],
             fsrs_params_6: vec![],
@@ -377,6 +383,8 @@ impl From<DeckConfSchema11> for DeckConfig {
                 new_mix: c.new_mix,
                 interday_learning_mix: c.interday_learning_mix,
                 topic_interleaving: c.topic_interleaving,
+                topic_scheduling: c.topic_scheduling,
+                topic_weak_interval_factor: c.topic_weak_interval_factor,
                 leech_action: c.lapse.leech_action as i32,
                 leech_threshold: c.lapse.leech_fails,
                 disable_autoplay: !c.autoplay,
@@ -507,6 +515,8 @@ impl From<DeckConfig> for DeckConfSchema11 {
             new_gather_priority: i.new_card_gather_priority,
             bury_interday_learning: i.bury_interday_learning,
             topic_interleaving: i.topic_interleaving,
+            topic_scheduling: i.topic_scheduling,
+            topic_weak_interval_factor: i.topic_weak_interval_factor,
             fsrs_params_4: i.fsrs_params_4,
             fsrs_params_5: i.fsrs_params_5,
             fsrs_params_6: i.fsrs_params_6,
@@ -536,6 +546,8 @@ static RESERVED_DECKCONF_KEYS: Set<&'static str> = phf_set! {
     "name",
     "interdayLearningMix",
     "topicInterleaving",
+    "topicScheduling",
+    "topicWeakIntervalFactor",
     "newGatherPriority",
     "fsrsWeights",
     "fsrsParams5",

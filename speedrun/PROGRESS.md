@@ -16,6 +16,36 @@ See [prd.md](../prd.md) and [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) 
   count, year range, topic mix) with checkboxes, an **"Add starter set"** button
   (AMC 8 / 10A / 12A pre-checked), and imports the chosen `.apkg`s into the
   collection. Generated `.apkg`s are gitignored (MAA content); regenerate locally.
+- `qt/aqt/speedrun_settings.py` (+ registered in `qt/aqt/__init__.py`) — a
+  **"Settings"** top-toolbar button / Tools-menu entry opening a dialog with
+  checkboxes: **Enable FSRS** (seeds default params so answering can't break),
+  **Interleave topics**, and **Topic-aware scheduling**. All three are **ON by
+  default** — the engine deck-config defaults are `true`, and a one-time
+  `collection_did_load` pass enables FSRS + the topic flags on all existing
+  presets (guarded by a config marker so later manual changes are respected).
+
+## Rust engine change — topic-aware scheduling (weak topics return sooner)
+
+**Goal:** bring weak-topic cards back sooner by shortening their next review
+interval, while keeping FSRS memory state valid and undo working. Default OFF.
+
+- `proto/anki/deck_config.proto` — `bool topic_scheduling = 48;` +
+  `float topic_weak_interval_factor = 49;` (+ default/validation in
+  `deckconfig/mod.rs`, legacy round-trip in `schema11.rs`).
+- `rslib/src/scheduler/answering/mod.rs` — `CardStateUpdater` computes a per-card
+  interval multiplier: only for `topic::`-tagged cards with FSRS state, scaled by
+  the card's FSRS **difficulty** (1.0 for easy → `topic_weak_interval_factor` for
+  hardest). Threaded into `StateContext`.
+- `rslib/src/scheduler/states/{mod,review}.rs` — applied in
+  `constrain_passing_interval` (same seam as the SM-2 interval multiplier),
+  **before** fuzz/clamp. Only `scheduled_days` changes; `memory_state` (stability/
+  difficulty) is never touched, so FSRS stays valid and undo restores the prior
+  interval via the existing card snapshot.
+- **Tests:** 2 Rust unit tests — intervals shorten under the multiplier (SM-2 path)
+  and, under FSRS, the interval halves while memory state is preserved.
+- Enable (debug console): `conf["topicScheduling"]=True` (requires FSRS on).
+- *Note:* weakness is the card's FSRS difficulty; a true per-topic aggregate
+  (mean recall) is a follow-up that can reuse the dashboard mastery query.
 
 ## Rust engine change — topic-aware interleaving queue (graded centerpiece)
 

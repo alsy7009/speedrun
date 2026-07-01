@@ -305,6 +305,9 @@ fn constrain_passing_interval(ctx: &StateContext, interval: f32, minimum: u32, f
     } else {
         interval * ctx.interval_multiplier
     };
+    // Speedrun topic-aware scheduling: bring weak-topic cards back sooner. This
+    // scales the scheduled interval only; FSRS memory state is untouched.
+    let interval = interval * ctx.topic_interval_multiplier;
     let (minimum, maximum) = ctx.min_and_max_review_intervals(minimum);
     if fuzz {
         ctx.with_review_fuzz(interval, minimum, maximum)
@@ -372,6 +375,86 @@ mod test {
         ctx.interval_multiplier = 10.0;
         ctx.maximum_review_interval = 5;
         assert_eq!(state.passing_review_intervals(&ctx), (5, 5, 5));
+    }
+
+    #[test]
+    fn topic_scheduling_shortens_passing_intervals() {
+        let mut ctx = StateContext::defaults_for_testing();
+        ctx.fuzz_factor = Some(0.0);
+        let state = ReviewState {
+            scheduled_days: 100,
+            elapsed_days: 0,
+            ease_factor: 2.5,
+            lapses: 0,
+            leeched: false,
+            memory_state: None,
+        };
+
+        // Baseline with the default (no-op) multiplier of 1.0.
+        let base = state.passing_review_intervals(&ctx);
+
+        // A weak-topic multiplier brings the card back sooner.
+        ctx.topic_interval_multiplier = 0.5;
+        let weak = state.passing_review_intervals(&ctx);
+        assert!(
+            weak.1 < base.1 && weak.2 < base.2,
+            "weak-topic intervals {weak:?} should be shorter than baseline {base:?}"
+        );
+
+        // A multiplier of 1.0 is a no-op.
+        ctx.topic_interval_multiplier = 1.0;
+        assert_eq!(state.passing_review_intervals(&ctx), base);
+    }
+
+    #[test]
+    fn topic_scheduling_under_fsrs_preserves_memory_state() {
+        let mut ctx = StateContext::defaults_for_testing();
+        let mem = fsrs::MemoryState {
+            stability: 12.0,
+            difficulty: 8.0,
+        };
+        ctx.fsrs_next_states = Some(fsrs::NextStates {
+            again: fsrs::ItemState {
+                memory: mem,
+                interval: 1.0,
+            },
+            hard: fsrs::ItemState {
+                memory: mem,
+                interval: 50.0,
+            },
+            good: fsrs::ItemState {
+                memory: mem,
+                interval: 100.0,
+            },
+            easy: fsrs::ItemState {
+                memory: mem,
+                interval: 200.0,
+            },
+        });
+        let state = ReviewState {
+            scheduled_days: 10,
+            elapsed_days: 10,
+            ease_factor: 2.5,
+            lapses: 0,
+            leeched: false,
+            memory_state: Some(FsrsMemoryState {
+                stability: 12.0,
+                difficulty: 8.0,
+            }),
+        };
+
+        // Without a topic effect, FSRS' raw interval (100) is used.
+        let good = state.next_states(&ctx).good.review_state().unwrap();
+        assert_eq!(good.scheduled_days, 100);
+
+        // The weak-topic multiplier shortens the interval but must NOT change
+        // the FSRS memory state attached to the resulting card.
+        ctx.topic_interval_multiplier = 0.5;
+        let good = state.next_states(&ctx).good.review_state().unwrap();
+        assert_eq!(good.scheduled_days, 50);
+        let preserved = good.memory_state.unwrap();
+        assert_eq!(preserved.stability, 12.0);
+        assert_eq!(preserved.difficulty, 8.0);
     }
 
     #[test]

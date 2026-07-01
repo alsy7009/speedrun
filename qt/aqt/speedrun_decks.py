@@ -194,14 +194,34 @@ class AmcDeckDialog(QDialog):
         self.accept()
 
 
+def _open_dialog() -> None:
+    mw = aqt.mw
+    if mw is not None:
+        AmcDeckDialog(mw).exec()
+
+
 def _on_main_window_did_init() -> None:
     mw = aqt.mw
     if mw is None:
         return
     action = QAction("Speedrun: Add AMC Decks…", mw)
-    qconnect(action.triggered, lambda: AmcDeckDialog(mw).exec())
+    qconnect(action.triggered, _open_dialog)
     mw.form.menuTools.addAction(action)
+
+
+def _on_top_toolbar_init_links(links: list[str], toolbar: Any) -> None:
+    """Add an 'AMC Decks' button to the top toolbar (Decks / Add / Browse / ...)."""
+    links.append(
+        toolbar.create_link(
+            "speedrun_amc_decks",
+            "AMC Decks",
+            _open_dialog,
+            tip="Add Speedrun AMC competition decks",
+            id="speedrun_amc_decks",
+        )
+    )
 
 
 def init() -> None:
     gui_hooks.main_window_did_init.append(_on_main_window_did_init)
+    gui_hooks.top_toolbar_did_init_links.append(_on_top_toolbar_init_links)

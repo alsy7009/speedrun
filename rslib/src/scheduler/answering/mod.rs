@@ -78,6 +78,8 @@ struct CardStateUpdater {
     desired_retention: Option<f32>,
     fsrs_short_term_with_steps: bool,
     fsrs_allow_short_term: bool,
+    /// Speedrun topic-aware scheduling multiplier (1.0 = no change).
+    topic_interval_multiplier: f32,
 }
 
 impl CardStateUpdater {
@@ -97,6 +99,7 @@ impl CardStateUpdater {
             hard_multiplier: self.config.inner.hard_multiplier,
             easy_multiplier: self.config.inner.easy_multiplier,
             interval_multiplier: self.config.inner.interval_multiplier,
+            topic_interval_multiplier: self.topic_interval_multiplier,
             maximum_review_interval: self.config.inner.maximum_review_interval,
             leech_threshold: self.config.inner.leech_threshold,
             load_balancer_ctx: load_balancer_ctx
@@ -513,6 +516,7 @@ impl Collection {
             .storage
             .get_deck(home_deck.id)?
             .or_not_found(home_deck.id)?;
+        let topic_interval_multiplier = self.topic_interval_multiplier(&card, &config)?;
         Ok(CardStateUpdater {
             fuzz_seed: get_fuzz_seed(&card, false),
             card,
@@ -525,7 +529,37 @@ impl Collection {
             desired_retention,
             fsrs_short_term_with_steps,
             fsrs_allow_short_term,
+            topic_interval_multiplier,
         })
+    }
+
+    /// Speedrun topic-aware scheduling: compute an interval multiplier in
+    /// `(0, 1]` for the card being answered. Weak (high FSRS difficulty) cards
+    /// that carry a `topic::` tag get a smaller multiplier so they return
+    /// sooner; everything else (and any non-topic / non-FSRS card) gets 1.0.
+    /// Only the scheduled interval is affected — FSRS memory state is untouched.
+    fn topic_interval_multiplier(&mut self, card: &Card, config: &DeckConfig) -> Result<f32> {
+        if !config.inner.topic_scheduling {
+            return Ok(1.0);
+        }
+        let Some(memory_state) = card.memory_state else {
+            return Ok(1.0);
+        };
+        let Some(note_tags) = self.storage.get_note_tags_by_id(card.note_id)? else {
+            return Ok(1.0);
+        };
+        let has_topic = note_tags
+            .tags
+            .split_whitespace()
+            .any(|tag| tag.starts_with("topic::"));
+        if !has_topic {
+            return Ok(1.0);
+        }
+        // difficulty() is in 0..1 (1.0 = hardest/weakest). Scale linearly from
+        // 1.0 (easiest, no change) down to the configured weak factor (hardest).
+        let weak_factor = config.inner.topic_weak_interval_factor;
+        let difficulty = memory_state.difficulty().clamp(0.0, 1.0);
+        Ok(1.0 - difficulty * (1.0 - weak_factor))
     }
 
     pub(crate) fn home_deck_config(

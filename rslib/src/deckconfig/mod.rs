@@ -59,7 +59,10 @@ const DEFAULT_DECK_CONFIG_INNER: DeckConfigInner = DeckConfigInner {
     review_order: ReviewCardOrder::Day as i32,
     new_mix: ReviewMix::MixWithReviews as i32,
     interday_learning_mix: ReviewMix::MixWithReviews as i32,
-    topic_interleaving: false,
+    // Speedrun defaults these learning-science features ON.
+    topic_interleaving: true,
+    topic_scheduling: true,
+    topic_weak_interval_factor: 0.5,
     leech_action: LeechAction::TagOnly as i32,
     leech_threshold: 8,
     disable_autoplay: false,
@@ -257,6 +260,12 @@ pub(crate) fn ensure_deck_config_values_valid(config: &mut DeckConfigInner) {
         default.interval_multiplier,
         0.5,
         2.0,
+    );
+    ensure_f32_valid(
+        &mut config.topic_weak_interval_factor,
+        default.topic_weak_interval_factor,
+        0.1,
+        1.0,
     );
     ensure_u32_valid(
         &mut config.maximum_review_interval,

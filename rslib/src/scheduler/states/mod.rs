@@ -100,6 +100,10 @@ pub(crate) struct StateContext<'a> {
     pub hard_multiplier: f32,
     pub easy_multiplier: f32,
     pub interval_multiplier: f32,
+    /// Speedrun topic-aware scheduling: extra multiplier applied to passing
+    /// review intervals (1.0 = no change). Shortens weak-topic cards' next
+    /// interval without touching FSRS memory state.
+    pub topic_interval_multiplier: f32,
     pub maximum_review_interval: u32,
     pub leech_threshold: u32,
     pub load_balancer_ctx: Option<LoadBalancerContext<'a>>,
@@ -135,6 +139,7 @@ impl StateContext<'_> {
             hard_multiplier: 1.2,
             easy_multiplier: 1.3,
             interval_multiplier: 1.0,
+            topic_interval_multiplier: 1.0,
             maximum_review_interval: 36500,
             leech_threshold: 8,
             load_balancer_ctx: None,
