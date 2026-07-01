@@ -5,6 +5,16 @@ See [prd.md](../prd.md) and [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) 
 
 ---
 
+## Card UI — blue theme (matches mobile)
+
+- `speedrun/card_theme.css` — single source of truth for the MC card styling: an
+  AnkiDroid-blue identity (blue gradient top accent + `topic::` eyebrow, blue choice
+  buttons with hover/selected states; correct/incorrect stay green/red), with a full
+  night-mode variant. Used by `build_deck.py` (baked into generated decks) and
+  `qt/aqt/speedrun_theme.py`, which refreshes the `Speedrun MC` note type's CSS on
+  `collection_did_load` so existing desktop decks pick up the theme without re-import.
+  Decks regenerated + mobile assets re-bundled + APK rebuilt so both apps match.
+
 ## Mobile repos (published)
 
 Three repos, mirroring upstream's split:

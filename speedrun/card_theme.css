@@ -1,0 +1,59 @@
+/* Speedrun blue theme — matches the AnkiDroid mobile app (Material blue gradient,
+   blue choice interactions). Correct/incorrect stay green/red for clarity.
+   Single source of truth: used by speedrun/build_deck.py (baked into decks) and
+   qt/aqt/speedrun_theme.py (applied to existing collections). */
+.card {
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 20px;
+  color: #102a43;
+  background: #ffffff;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 22px 22px 26px;
+  text-align: left;
+  line-height: 1.55;
+  border-top: 4px solid #1e88e5;
+  border-image: linear-gradient(90deg, #1565c0, #42a5f5) 1;
+}
+.meta {
+  font-size: 12px; font-weight: 700; color: #1e88e5;
+  text-transform: uppercase; letter-spacing: .09em;
+  padding-bottom: 10px; margin-bottom: 16px;
+  border-bottom: 1px solid #e3f0fb;
+}
+.problem { margin-bottom: 20px; }
+.choices { display: flex; flex-direction: column; gap: 10px; }
+.choice {
+  display: block; width: 100%; text-align: left; cursor: pointer; font: inherit; color: inherit;
+  background: #f7fbff; border: 1.5px solid #d6e6f7; border-radius: 12px; padding: 13px 16px;
+  transition: background .12s, border-color .12s, box-shadow .12s;
+}
+.choice::before { content: attr(data-letter) ".\00a0\00a0"; font-weight: 700; color: #1e88e5; }
+.choice:hover:not(.locked) { background: #e8f3fe; border-color: #90caf9; }
+.choice.selected { border-color: #1e88e5; box-shadow: 0 0 0 3px rgba(30,136,229,.18); }
+.choice.locked { cursor: default; }
+.choice.correct { background: #e7f7ec; border-color: #2e9e54; }
+.choice.correct::before { color: #2e9e54; }
+.choice.incorrect { background: #fdebec; border-color: #d6453f; }
+.choice.incorrect::before { color: #d6453f; }
+#answer { margin: 20px 0; border: none; border-top: 1px solid #e3f0fb; }
+.feedback { font-size: 16px; font-weight: 700; margin: 14px 0; }
+.feedback.ok { color: #2e9e54; }
+.feedback.bad { color: #d6453f; }
+.feedback.neutral { color: #1565c0; }
+.solution {
+  background: #f2f8ff; border-left: 4px solid #1e88e5; padding: 12px 16px; border-radius: 6px;
+}
+.src { font-size: 12px; color: #7ba3c9; margin-top: 16px; }
+.src a { color: #1e88e5; }
+.nightMode.card { color: #e6f0fb; background: #0f1b2d; border-image: linear-gradient(90deg, #1565c0, #64b5f6) 1; }
+.nightMode .meta { color: #64b5f6; border-bottom-color: #1c3350; }
+.nightMode .choice { background: #14263d; border-color: #24405f; }
+.nightMode .choice::before { color: #64b5f6; }
+.nightMode .choice:hover:not(.locked) { background: #1b3452; border-color: #3d6699; }
+.nightMode .choice.selected { border-color: #64b5f6; box-shadow: 0 0 0 3px rgba(100,181,246,.22); }
+.nightMode .choice.correct { background: #1f3b29; border-color: #46b46e; }
+.nightMode .choice.incorrect { background: #4a2422; border-color: #e06a64; }
+.nightMode #answer { border-top-color: #1c3350; }
+.nightMode .feedback.neutral { color: #64b5f6; }
+.nightMode .solution { background: #16283f; border-left-color: #42a5f5; }

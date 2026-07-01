@@ -120,47 +120,9 @@ def to_mathjax(text: str) -> str:
     return text
 
 
-CARD_CSS = """
-.card {
-  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
-  font-size: 20px;
-  color: #1a1a1a;
-  background: #ffffff;
-  max-width: 720px;
-  margin: 0 auto;
-  text-align: left;
-  line-height: 1.5;
-}
-.meta { font-size: 13px; color: #888; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 10px; }
-.problem { margin-bottom: 18px; }
-.choices { display: flex; flex-direction: column; gap: 10px; }
-.choice {
-  display: block; width: 100%; text-align: left; cursor: pointer; font: inherit; color: inherit;
-  background: #fafafa; border: 1px solid #e0e0e0; border-radius: 10px; padding: 12px 14px;
-  transition: background .12s, border-color .12s;
-}
-.choice::before { content: attr(data-letter) ".\\00a0\\00a0"; font-weight: 700; color: #666; }
-.choice:hover:not(.locked) { background: #f0f4ff; border-color: #b9c8ff; }
-.choice.selected { border-color: #5b7cfa; }
-.choice.locked { cursor: default; }
-.choice.correct { background: #e7f7ec; border-color: #2e9e54; }
-.choice.correct::before { color: #2e9e54; }
-.choice.incorrect { background: #fdebec; border-color: #d6453f; }
-.choice.incorrect::before { color: #d6453f; }
-#answer { margin: 18px 0; border: none; border-top: 2px solid #eee; }
-.feedback { font-size: 16px; font-weight: 600; margin: 12px 0; }
-.feedback.ok { color: #2e9e54; }
-.feedback.bad { color: #d6453f; }
-.feedback.neutral { color: #555; }
-.solution { background: #fafafa; border-left: 3px solid #ddd; padding: 10px 14px; border-radius: 4px; }
-.src { font-size: 12px; color: #aaa; margin-top: 14px; }
-.nightMode.card { color: #e6e6e6; background: #2a2a2a; }
-.nightMode .choice { background: #333; border-color: #444; }
-.nightMode .choice:hover:not(.locked) { background: #2f3a5a; }
-.nightMode .choice.correct { background: #1f3b29; border-color: #46b46e; }
-.nightMode .choice.incorrect { background: #4a2422; border-color: #e06a64; }
-.nightMode .solution { background: #333; border-left-color: #555; }
-"""
+# Card styling (Speedrun blue theme) lives in card_theme.css so the desktop app
+# (qt/aqt/speedrun_theme.py) and generated decks share one source of truth.
+CARD_CSS = (Path(__file__).resolve().parent / "card_theme.css").read_text()
 
 # Front: problem stem + clickable choices. Clicking locks the selection (stored in
 # sessionStorage) and reveals the answer side via pycmd("ans").

@@ -115,10 +115,12 @@ from aqt import stats, about, preferences, mediasync  # isort:skip
 from aqt import speedrun_tracking  # isort:skip
 from aqt import speedrun_decks  # isort:skip
 from aqt import speedrun_settings  # isort:skip
+from aqt import speedrun_theme  # isort:skip
 
 speedrun_tracking.init()
 speedrun_decks.init()
 speedrun_settings.init()
+speedrun_theme.init()
 
 
 class DialogManager:
