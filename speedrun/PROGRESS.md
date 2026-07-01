@@ -5,6 +5,23 @@ See [prd.md](../prd.md) and [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) 
 
 ---
 
+## Mobile (AnkiDroid) — in progress
+
+- **M0 toolchain (done):** JDK 17, Android SDK (platform 35/36, build-tools,
+  platform-tools), emulator + arm64 system image, Rust Android targets, AVD `speedrun`.
+- **M1 build+run (done):** AnkiDroid cloned to `speedrun/out/Anki-Android` (gitignored);
+  built our `full-debug` APKs (per ABI) against the shared Rust backend; installed +
+  launched on the emulator. `speedrun/mobile.sh` boots the emulator, installs the APK,
+  and pushes the AMC deck — then import + study interactively (MC cards render on
+  AnkiDroid; JS + MathJax supported).
+- **M2 (deferred, DECISION NEEDED):** our fork is Anki **26.05**; AnkiDroid pins backend
+  **`anki-android-backend:0.1.64-anki25.09.2`**. To ship our interleaving + topic
+  scheduling to the phone we must build `Anki-Android-Backend` from Rust (NDK cross-
+  compile) with matching proto/service versions. Options logged in the M2 todo.
+- **M3 (todo):** self-host `anki-sync-server`; sync desktop ↔ phone both ways.
+
+---
+
 ## All AMC decks + in-app deck picker
 
 - `speedrun/build_all_decks.py` — generates one `.apkg` per AMC contest (AMC 8/10/10A/
