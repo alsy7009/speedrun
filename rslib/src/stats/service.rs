@@ -36,6 +36,10 @@ impl crate::services::StatsService for Collection {
     ) -> error::Result<()> {
         self.set_graph_preferences(input)
     }
+
+    fn get_speedrun_scores(&mut self) -> error::Result<anki_proto::stats::SpeedrunScores> {
+        self.speedrun_scores()
+    }
 }
 
 impl From<RevlogReviewKind> for i32 {

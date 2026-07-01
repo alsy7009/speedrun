@@ -4,9 +4,14 @@
 
 The Speedrun MC card template posts a message ``speedrun:attempt:<correct>:<letter>``
 when the answer side is shown (``<correct>`` is ``1``/``0``, or empty if the student
-revealed the answer without picking). We record each attempt on the card's
+revealed the answer without picking). We record a compact aggregate on the card's
 ``custom_data`` JSON, which is part of the collection and therefore syncs to the
-phone. This signal later feeds the performance/readiness models.
+phone. This signal feeds the Performance/Readiness scores (see speedrun/SCORES.md).
+
+Anki enforces custom_data keys <= 8 bytes and <= 100 bytes serialized, so we keep
+one small object instead of a per-attempt log::
+
+    {"sr": {"n": attempts, "k": correct, "f": first_attempt_correct, "t": last_ts}}
 
 Registered from ``aqt/__init__.py`` at startup; it is a no-op for any other card
 type or message.
@@ -22,14 +27,14 @@ import aqt
 from aqt import gui_hooks
 
 _PREFIX = "speedrun:attempt:"
-_MAX_ATTEMPTS = 50  # keep custom_data small
 
 
 def _record_attempt(message: str) -> None:
     payload = message[len(_PREFIX):]
-    correct_str, _, letter = payload.partition(":")
+    correct_str, _, _letter = payload.partition(":")
     if correct_str == "":
         return  # answer revealed without a selection; nothing to record
+    correct = int(correct_str)
 
     mw = aqt.mw
     if mw is None or mw.reviewer is None or mw.reviewer.card is None or mw.col is None:
@@ -41,9 +46,14 @@ def _record_attempt(message: str) -> None:
     except (ValueError, TypeError):
         data = {}
 
-    attempts = data.get("sr_attempts", [])
-    attempts.append({"c": int(correct_str), "a": letter, "t": int(time.time())})
-    data["sr_attempts"] = attempts[-_MAX_ATTEMPTS:]
+    stats = data.get("sr") or {}
+    first_attempt = not stats
+    data["sr"] = {
+        "n": int(stats.get("n", 0)) + 1,
+        "k": int(stats.get("k", 0)) + correct,
+        "f": correct if first_attempt else int(stats.get("f", 0)),
+        "t": int(time.time()),
+    }
     card.custom_data = json.dumps(data, separators=(",", ":"))
     mw.col.update_card(card)
 

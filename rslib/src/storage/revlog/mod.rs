@@ -103,6 +103,26 @@ impl SqliteStorage {
             .map_err(Into::into)
     }
 
+    /// Speedrun scores: last graded-review time per card, in one pass.
+    pub(crate) fn speedrun_last_review_times(
+        &self,
+    ) -> Result<std::collections::HashMap<CardId, TimestampSecs>> {
+        self.db
+            .prepare("select cid, max(id) / 1000 from revlog where ease between 1 and 4 group by cid")?
+            .query_and_then([], |r| {
+                Ok((CardId(r.get(0)?), TimestampSecs(r.get(1)?)))
+            })?
+            .collect()
+    }
+
+    /// Speedrun scores: total graded reviews (ease 1-4; manual entries excluded).
+    pub(crate) fn speedrun_graded_review_count(&self) -> Result<u32> {
+        self.db
+            .prepare("select count(*) from revlog where ease between 1 and 4")?
+            .query_row([], |r| r.get(0))
+            .map_err(Into::into)
+    }
+
     /// Only intended to be used by the undo code, as Anki can not sync revlog
     /// deletions.
     pub(crate) fn remove_revlog_entry(&self, id: RevlogId) -> Result<()> {

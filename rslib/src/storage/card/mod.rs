@@ -500,6 +500,17 @@ impl super::SqliteStorage {
             .collect()
     }
 
+    /// Speedrun scores: (card id, card type, note tags, card data JSON) for
+    /// every card, in one pass.
+    pub(crate) fn speedrun_card_rows(&self) -> Result<Vec<(CardId, u8, String, String)>> {
+        self.db
+            .prepare("select c.id, c.type, n.tags, c.data from cards c, notes n where c.nid = n.id")?
+            .query_and_then([], |r| {
+                Ok((CardId(r.get(0)?), r.get(1)?, r.get(2)?, r.get(3)?))
+            })?
+            .collect()
+    }
+
     pub(crate) fn get_all_card_ids(&self) -> Result<HashSet<CardId>> {
         self.db
             .prepare("SELECT id FROM cards")?

@@ -1,10 +1,11 @@
 {
-  "generated": "2026-07-01T13:05:39",
-  "source": "HARP (AoPS / MAA)",
+  "generated": "2026-07-01T15:01:15",
+  "source": "HARP (AoPS / MAA) + original GRE-style problems",
   "decks": [
     {
       "code": "AMC_8",
       "tier": "AMC 8",
+      "label": "AMC 8 only",
       "file": "AMC_8.apkg",
       "deck_name": "Speedrun::AMC 8",
       "problem_count": 915,
@@ -15,11 +16,12 @@
         "combinatorics": 172,
         "number_theory": 122
       },
-      "starter": true
+      "starter": false
     },
     {
       "code": "AMC_10",
       "tier": "AMC 10",
+      "label": "AMC 10 only",
       "file": "AMC_10.apkg",
       "deck_name": "Speedrun::AMC 10",
       "problem_count": 697,
@@ -30,11 +32,12 @@
         "combinatorics": 139,
         "number_theory": 92
       },
-      "starter": true
+      "starter": false
     },
     {
       "code": "AMC_12",
       "tier": "AMC 12",
+      "label": "AMC 12 only",
       "file": "AMC_12.apkg",
       "deck_name": "Speedrun::AMC 12",
       "problem_count": 2498,
@@ -44,6 +47,102 @@
         "geometry": 676,
         "combinatorics": 289,
         "number_theory": 259
+      },
+      "starter": false
+    },
+    {
+      "code": "GRE",
+      "tier": "GRE",
+      "label": "GRE only",
+      "file": "GRE.apkg",
+      "deck_name": "Speedrun::GRE",
+      "problem_count": 17,
+      "deck_count": 9,
+      "topics": {
+        "calculus": 2,
+        "sequences_series": 2,
+        "differential_equations": 2,
+        "linear_algebra": 2,
+        "abstract_algebra": 2,
+        "real_analysis": 2,
+        "probability": 2,
+        "multivariable_calculus": 2,
+        "complex_analysis": 1
+      },
+      "starter": false
+    },
+    {
+      "code": "MIXED_AMC_8",
+      "tier": "Mixed",
+      "label": "Mixed: AMC 8 + GRE",
+      "file": "MIXED_AMC_8.apkg",
+      "deck_name": "Speedrun::Mixed::AMC 8 + GRE",
+      "problem_count": 41,
+      "deck_count": 1,
+      "topics": {
+        "number_theory": 6,
+        "algebra": 5,
+        "calculus": 2,
+        "geometry": 6,
+        "sequences_series": 2,
+        "combinatorics": 7,
+        "differential_equations": 2,
+        "linear_algebra": 2,
+        "abstract_algebra": 2,
+        "real_analysis": 2,
+        "probability": 2,
+        "multivariable_calculus": 2,
+        "complex_analysis": 1
+      },
+      "starter": true
+    },
+    {
+      "code": "MIXED_AMC_10",
+      "tier": "Mixed",
+      "label": "Mixed: AMC 10 + GRE",
+      "file": "MIXED_AMC_10.apkg",
+      "deck_name": "Speedrun::Mixed::AMC 10 + GRE",
+      "problem_count": 44,
+      "deck_count": 1,
+      "topics": {
+        "geometry": 8,
+        "algebra": 9,
+        "calculus": 2,
+        "number_theory": 5,
+        "sequences_series": 2,
+        "combinatorics": 5,
+        "differential_equations": 2,
+        "linear_algebra": 2,
+        "abstract_algebra": 2,
+        "real_analysis": 2,
+        "probability": 2,
+        "multivariable_calculus": 2,
+        "complex_analysis": 1
+      },
+      "starter": true
+    },
+    {
+      "code": "MIXED_AMC_12",
+      "tier": "Mixed",
+      "label": "Mixed: AMC 12 + GRE",
+      "file": "MIXED_AMC_12.apkg",
+      "deck_name": "Speedrun::Mixed::AMC 12 + GRE",
+      "problem_count": 64,
+      "deck_count": 1,
+      "topics": {
+        "algebra": 23,
+        "number_theory": 8,
+        "calculus": 2,
+        "combinatorics": 8,
+        "geometry": 8,
+        "sequences_series": 2,
+        "differential_equations": 2,
+        "linear_algebra": 2,
+        "abstract_algebra": 2,
+        "real_analysis": 2,
+        "probability": 2,
+        "multivariable_calculus": 2,
+        "complex_analysis": 1
       },
       "starter": true
     }

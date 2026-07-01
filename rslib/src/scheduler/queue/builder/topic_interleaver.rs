@@ -52,59 +52,81 @@ fn topic_from_tags(tags: &str) -> Option<String> {
         .map(|name| name.to_ascii_lowercase())
 }
 
-/// Reorder `cards` so consecutive entries have different topics where possible.
+/// Reorder `cards` so every topic is spread evenly across the queue and
+/// consecutive entries differ in topic where possible.
 ///
-/// Greedy strategy: at each step emit a card from the topic with the most
-/// remaining cards whose topic differs from the previous one (ties broken by
-/// first-seen topic order, which keeps the result deterministic and preserves
-/// each topic's internal order). When the only cards left share the previous
-/// topic (e.g. one topic exceeds half the deck), they are emitted in order,
-/// which minimises unavoidable adjacencies. Cards are moved, never modified.
+/// Strategy ("least emitted fraction"): at each step emit a card from the topic
+/// that has so far emitted the smallest fraction of its own cards, excluding the
+/// topic just emitted. Concretely we pick the topic minimising
+/// `(emitted + 0.5) / size`. This distributes each topic proportionally over the
+/// whole ordering, so a minority topic with only one or two cards (e.g. a GRE
+/// subject in a deck dominated by AMC problems) is guaranteed to appear early and
+/// throughout rather than being clustered at the end — which a "largest bucket
+/// first" greedy would do. Excluding the previous topic keeps adjacent cards
+/// distinct, so it also minimises unavoidable adjacencies for a dominant topic.
+///
+/// Ties are broken by first-seen topic order, which keeps the result
+/// deterministic and preserves each topic's internal order (cards are moved via
+/// `pop_front`, never modified). Fractions are compared with integer
+/// cross-multiplication to avoid floating point.
 pub(super) fn interleave_by_topic<T>(cards: &mut Vec<T>, topic_of: impl Fn(&T) -> i64) {
     if cards.len() < 3 {
         return;
     }
 
     // Group into per-topic queues, preserving first-seen topic order and the
-    // original within-topic order.
-    let mut buckets: Vec<(i64, VecDeque<T>)> = Vec::new();
+    // original within-topic order. `size` is the original count for that topic.
+    let mut buckets: Vec<(i64, usize, VecDeque<T>)> = Vec::new();
     for card in std::mem::take(cards) {
         let topic = topic_of(&card);
-        if let Some(slot) = buckets.iter_mut().find(|(t, _)| *t == topic) {
-            slot.1.push_back(card);
+        if let Some(slot) = buckets.iter_mut().find(|(t, _, _)| *t == topic) {
+            slot.1 += 1;
+            slot.2.push_back(card);
         } else {
             let mut queue = VecDeque::new();
             queue.push_back(card);
-            buckets.push((topic, queue));
+            buckets.push((topic, 1, queue));
         }
     }
 
-    let total: usize = buckets.iter().map(|(_, q)| q.len()).sum();
+    let total: usize = buckets.iter().map(|(_, _, q)| q.len()).sum();
     let mut out: Vec<T> = Vec::with_capacity(total);
     let mut last_topic: Option<i64> = None;
 
     for _ in 0..total {
-        // Prefer the largest remaining bucket whose topic isn't the last emitted.
+        // Pick the non-empty bucket (topic != last) with the smallest emitted
+        // fraction (emitted + 0.5) / size. Compare a<b as
+        // (2*emitted_a + 1) * size_b < (2*emitted_b + 1) * size_a.
         let mut best: Option<usize> = None;
-        for (i, (topic, queue)) in buckets.iter().enumerate() {
+        for (i, (topic, size, queue)) in buckets.iter().enumerate() {
             if queue.is_empty() || Some(*topic) == last_topic {
                 continue;
             }
-            match best {
-                // `>=` keeps the earlier bucket on ties -> deterministic.
-                Some(b) if buckets[b].1.len() >= queue.len() => {}
-                _ => best = Some(i),
+            let emitted = size - queue.len();
+            let is_better = match best {
+                None => true,
+                Some(b) => {
+                    let (_, bsize, bqueue) = &buckets[b];
+                    let bemitted = bsize - bqueue.len();
+                    let lhs = (2 * emitted as i64 + 1) * *bsize as i64;
+                    let rhs = (2 * bemitted as i64 + 1) * *size as i64;
+                    // strict `<` keeps the earlier bucket on ties -> deterministic
+                    lhs < rhs
+                }
+            };
+            if is_better {
+                best = Some(i);
             }
         }
         // If everything left shares the last topic, take the first non-empty bucket.
         let pick = best.unwrap_or_else(|| {
             buckets
                 .iter()
-                .position(|(_, q)| !q.is_empty())
+                .position(|(_, _, q)| !q.is_empty())
                 .expect("at least one non-empty bucket remains")
         });
         let card = buckets[pick]
-            .1
+            .2
             .pop_front()
             .expect("picked bucket is non-empty");
         last_topic = Some(buckets[pick].0);
@@ -174,6 +196,35 @@ mod test {
         let mut two = vec![2, 1];
         interleave_by_topic(&mut two, |c| *c);
         assert_eq!(two, vec![2, 1]);
+    }
+
+    #[test]
+    fn spreads_minority_topics_throughout() {
+        // 20 cards of a dominant topic (0) plus three singleton minority topics
+        // (1, 2, 3). The old "largest bucket first" greedy would emit all of
+        // topic 0 first and push the singletons to the very end; the fraction
+        // strategy must instead distribute them across the ordering so a
+        // student sees the minority topics early.
+        let mut input: Vec<i64> = std::iter::repeat(0).take(20).collect();
+        input.extend([1, 2, 3]);
+        let out = interleaved(&input);
+        assert_eq!(sorted(out.clone()), sorted(input), "must be a permutation");
+
+        let minority_positions: Vec<usize> = out
+            .iter()
+            .enumerate()
+            .filter(|(_, &t)| t != 0)
+            .map(|(i, _)| i)
+            .collect();
+        // Each singleton lands near the centre of its proportional slot, so all
+        // three appear within the first ~two thirds, never bunched at the tail.
+        for &p in &minority_positions {
+            assert!(
+                p < out.len() * 3 / 4,
+                "minority topic at {p} should be spread, not clustered at the end: {out:?}"
+            );
+        }
+        assert_eq!(minority_positions.len(), 3);
     }
 
     #[test]

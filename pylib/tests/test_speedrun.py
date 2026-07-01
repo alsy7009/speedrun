@@ -63,3 +63,59 @@ def test_topic_interleaving_end_to_end():
 
     # Collection must remain consistent.
     assert col.db.scalar("pragma integrity_check") == "ok"
+
+
+def test_speedrun_scores_abstain_then_show():
+    """The three-scores RPC abstains without data, and Memory appears once the
+    give-up line is crossed. Readiness must state exactly what is missing."""
+    import json
+
+    col = getEmptyCol()
+
+    # Empty collection: every score abstains with a concrete reason.
+    scores = col._backend.get_speedrun_scores()
+    assert not scores.memory.available
+    assert "20 graded reviews" in scores.memory.abstain_reason
+    assert not scores.performance.available
+    assert not scores.readiness.available
+    assert "more graded reviews" in scores.readiness.abstain_reason
+
+    # Add and review topic-tagged cards with FSRS on (so memory state exists).
+    col.set_config("fsrs", True)
+    model = col.models.by_name("Basic")
+    for i in range(25):
+        note = col.new_note(model)
+        note["Front"] = f"q{i}"
+        note["Back"] = f"a{i}"
+        note.tags = ["topic::calculus" if i % 2 else "topic::algebra"]
+        col.add_note(note, DeckId(1))
+    for _ in range(25):
+        card = col.sched.getCard()
+        if card is None:
+            break
+        col.sched.answerCard(card, 3)
+
+    # Record a first MC attempt on one card (compact custom_data aggregate).
+    card = col.sched.getCard() or col.get_card(
+        col.find_cards("")[0]
+    )
+    card.custom_data = json.dumps({"sr": {"n": 1, "k": 1, "f": 1, "t": 0}})
+    col.update_card(card)
+
+    scores = col._backend.get_speedrun_scores()
+    assert scores.graded_reviews >= 20
+    assert scores.mc_first_attempts == 1
+    # Memory is past its give-up line and must carry the full contract.
+    assert scores.memory.available
+    assert 0.0 <= scores.memory.range_low <= scores.memory.point <= scores.memory.range_high <= 100.0
+    assert scores.memory.confidence in ("low", "medium", "high")
+    assert scores.memory.reasons
+    # Performance/Readiness still lack attempts/coverage and must abstain.
+    assert not scores.performance.available
+    assert not scores.readiness.available
+    assert scores.last_updated > 0
+    # Coverage reflects the two studied topics (algebra .10 + calculus .25).
+    assert abs(scores.coverage_percent - 35.0) < 0.01
+
+    # Collection must remain consistent after the read-only query.
+    assert col.db.scalar("pragma integrity_check") == "ok"

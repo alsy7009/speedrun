@@ -1,0 +1,138 @@
+[
+  {
+    "source": "gre_style", "contest": "GRE Math Subject", "number": 1, "url": "",
+    "topic": "calculus",
+    "problem": "What is \\(\\displaystyle\\lim_{x\\to 0}\\frac{\\sin(3x)}{x}\\)?",
+    "choices": {"A": "\\(0\\)", "B": "\\(1\\)", "C": "\\(3\\)", "D": "\\(\\infty\\)", "E": "the limit does not exist"},
+    "answer": "C",
+    "solution": "Write \\(\\frac{\\sin(3x)}{x}=3\\cdot\\frac{\\sin(3x)}{3x}\\). As \\(x\\to 0\\), \\(\\frac{\\sin(3x)}{3x}\\to 1\\), so the limit is \\(\\boxed{3}\\)."
+  },
+  {
+    "source": "gre_style", "contest": "GRE Math Subject", "number": 2, "url": "",
+    "topic": "calculus",
+    "problem": "Evaluate \\(\\displaystyle\\int_0^{\\pi}\\sin x\\,dx\\).",
+    "choices": {"A": "\\(0\\)", "B": "\\(1\\)", "C": "\\(2\\)", "D": "\\(\\pi\\)", "E": "\\(-2\\)"},
+    "answer": "C",
+    "solution": "\\(\\int_0^{\\pi}\\sin x\\,dx=[-\\cos x]_0^{\\pi}=-\\cos\\pi+\\cos 0=1+1=\\boxed{2}\\)."
+  },
+  {
+    "source": "gre_style", "contest": "GRE Math Subject", "number": 3, "url": "",
+    "topic": "sequences_series",
+    "problem": "What is the value of \\(\\displaystyle\\sum_{n=1}^{\\infty}\\frac{1}{2^{n}}\\)?",
+    "choices": {"A": "\\(\\tfrac12\\)", "B": "\\(1\\)", "C": "\\(2\\)", "D": "\\(\\tfrac32\\)", "E": "it diverges"},
+    "answer": "B",
+    "solution": "Geometric series with first term \\(a=\\tfrac12\\) and ratio \\(r=\\tfrac12\\): sum \\(=\\frac{a}{1-r}=\\frac{1/2}{1/2}=\\boxed{1}\\)."
+  },
+  {
+    "source": "gre_style", "contest": "GRE Math Subject", "number": 4, "url": "",
+    "topic": "sequences_series",
+    "problem": "What is the radius of convergence of the power series \\(\\displaystyle\\sum_{n=0}^{\\infty}\\frac{x^{n}}{n!}\\)?",
+    "choices": {"A": "\\(0\\)", "B": "\\(1\\)", "C": "\\(e\\)", "D": "\\(\\infty\\)", "E": "\\(\\tfrac1e\\)"},
+    "answer": "D",
+    "solution": "By the ratio test, \\(\\left|\\frac{a_{n+1}}{a_n}\\right|=\\frac{|x|}{n+1}\\to 0<1\\) for all \\(x\\). The series converges everywhere, so the radius of convergence is \\(\\boxed{\\infty}\\) (indeed the series is \\(e^{x}\\))."
+  },
+  {
+    "source": "gre_style", "contest": "GRE Math Subject", "number": 5, "url": "",
+    "topic": "differential_equations",
+    "problem": "Solve \\(y'=2y\\) with \\(y(0)=1\\).",
+    "choices": {"A": "\\(y=e^{x}\\)", "B": "\\(y=e^{2x}\\)", "C": "\\(y=2e^{x}\\)", "D": "\\(y=e^{x^{2}}\\)", "E": "\\(y=1+2x\\)"},
+    "answer": "B",
+    "solution": "Separating, \\(\\frac{dy}{y}=2\\,dx\\Rightarrow \\ln|y|=2x+C\\Rightarrow y=Ae^{2x}\\). With \\(y(0)=1\\), \\(A=1\\), so \\(y=\\boxed{e^{2x}}\\)."
+  },
+  {
+    "source": "gre_style", "contest": "GRE Math Subject", "number": 6, "url": "",
+    "topic": "differential_equations",
+    "problem": "What is the general solution of \\(y''+y=0\\)?",
+    "choices": {"A": "\\(c_1e^{x}+c_2e^{-x}\\)", "B": "\\(c_1\\cos x+c_2\\sin x\\)", "C": "\\(c_1+c_2x\\)", "D": "\\(c_1e^{2x}+c_2e^{-2x}\\)", "E": "\\(c_1\\cos 2x+c_2\\sin 2x\\)"},
+    "answer": "B",
+    "solution": "The characteristic equation is \\(r^{2}+1=0\\), so \\(r=\\pm i\\). The real general solution is \\(\\boxed{c_1\\cos x+c_2\\sin x}\\)."
+  },
+  {
+    "source": "gre_style", "contest": "GRE Math Subject", "number": 7, "url": "",
+    "topic": "linear_algebra",
+    "problem": "What is \\(\\det\\begin{pmatrix}1&2\\\\3&4\\end{pmatrix}\\)?",
+    "choices": {"A": "\\(-2\\)", "B": "\\(2\\)", "C": "\\(-1\\)", "D": "\\(10\\)", "E": "\\(-10\\)"},
+    "answer": "A",
+    "solution": "\\(\\det=1\\cdot 4-2\\cdot 3=4-6=\\boxed{-2}\\)."
+  },
+  {
+    "source": "gre_style", "contest": "GRE Math Subject", "number": 8, "url": "",
+    "topic": "linear_algebra",
+    "problem": "If \\(A\\) is a \\(4\\times 6\\) matrix of rank \\(4\\), what is the dimension of the solution space of \\(Ax=0\\)?",
+    "choices": {"A": "\\(0\\)", "B": "\\(1\\)", "C": "\\(2\\)", "D": "\\(4\\)", "E": "\\(6\\)"},
+    "answer": "C",
+    "solution": "By the rank-nullity theorem, \\(\\text{nullity}=n-\\text{rank}=6-4=\\boxed{2}\\)."
+  },
+  {
+    "source": "gre_style", "contest": "GRE Math Subject", "number": 9, "url": "",
+    "topic": "abstract_algebra",
+    "problem": "How many elements of order \\(2\\) does the group \\(\\mathbb{Z}/6\\mathbb{Z}\\) (under addition) have?",
+    "choices": {"A": "\\(0\\)", "B": "\\(1\\)", "C": "\\(2\\)", "D": "\\(3\\)", "E": "\\(5\\)"},
+    "answer": "B",
+    "solution": "An element \\(x\\) has order \\(2\\) iff \\(2x\\equiv 0\\pmod 6\\) and \\(x\\neq 0\\). This gives \\(x=3\\) only, so there is \\(\\boxed{1}\\) such element."
+  },
+  {
+    "source": "gre_style", "contest": "GRE Math Subject", "number": 10, "url": "",
+    "topic": "abstract_algebra",
+    "problem": "How many generators does the cyclic group \\(\\mathbb{Z}/8\\mathbb{Z}\\) have?",
+    "choices": {"A": "\\(1\\)", "B": "\\(2\\)", "C": "\\(4\\)", "D": "\\(7\\)", "E": "\\(8\\)"},
+    "answer": "C",
+    "solution": "The generators are the residues coprime to \\(8\\): \\(\\{1,3,5,7\\}\\). Their count is \\(\\varphi(8)=\\boxed{4}\\)."
+  },
+  {
+    "source": "gre_style", "contest": "GRE Math Subject", "number": 11, "url": "",
+    "topic": "real_analysis",
+    "problem": "What is \\(\\sup\\left\\{\\,1-\\tfrac1n : n\\in\\mathbb{N}\\,\\right\\}\\)?",
+    "choices": {"A": "\\(0\\)", "B": "\\(\\tfrac12\\)", "C": "\\(1\\)", "D": "\\(2\\)", "E": "it does not exist"},
+    "answer": "C",
+    "solution": "The terms \\(1-\\tfrac1n\\) increase toward \\(1\\) but never reach it. \\(1\\) is an upper bound and no smaller number is, so the supremum is \\(\\boxed{1}\\) (it is not attained)."
+  },
+  {
+    "source": "gre_style", "contest": "GRE Math Subject", "number": 12, "url": "",
+    "topic": "real_analysis",
+    "problem": "Which of the following functions is uniformly continuous on the open interval \\((0,1)\\)?",
+    "choices": {"A": "\\(\\tfrac1x\\)", "B": "\\(\\sin\\!\\left(\\tfrac1x\\right)\\)", "C": "\\(x^{2}\\)", "D": "\\(\\tfrac{1}{1-x}\\)", "E": "\\(\\tfrac{1}{x^{2}}\\)"},
+    "answer": "C",
+    "solution": "\\(x^{2}\\) extends to a continuous function on the compact interval \\([0,1]\\), hence is uniformly continuous on \\((0,1)\\). The others blow up or oscillate near an endpoint (e.g. \\(1/x\\) and \\(\\sin(1/x)\\) near \\(0\\), \\(1/(1-x)\\) near \\(1\\)), so they are not uniformly continuous. Answer: \\(\\boxed{x^{2}}\\)."
+  },
+  {
+    "source": "gre_style", "contest": "GRE Math Subject", "number": 13, "url": "",
+    "topic": "probability",
+    "problem": "A fair coin is flipped \\(3\\) times. What is the probability of getting exactly \\(2\\) heads?",
+    "choices": {"A": "\\(\\tfrac18\\)", "B": "\\(\\tfrac14\\)", "C": "\\(\\tfrac38\\)", "D": "\\(\\tfrac12\\)", "E": "\\(\\tfrac34\\)"},
+    "answer": "C",
+    "solution": "There are \\(\\binom{3}{2}=3\\) favorable outcomes out of \\(2^{3}=8\\), so the probability is \\(\\boxed{\\tfrac38}\\)."
+  },
+  {
+    "source": "gre_style", "contest": "GRE Math Subject", "number": 14, "url": "",
+    "topic": "probability",
+    "problem": "What is the expected value of a single roll of a fair six-sided die?",
+    "choices": {"A": "\\(3\\)", "B": "\\(3.5\\)", "C": "\\(4\\)", "D": "\\(6\\)", "E": "\\(21\\)"},
+    "answer": "B",
+    "solution": "\\(E[X]=\\frac{1+2+3+4+5+6}{6}=\\frac{21}{6}=\\boxed{3.5}\\)."
+  },
+  {
+    "source": "gre_style", "contest": "GRE Math Subject", "number": 15, "url": "",
+    "topic": "multivariable_calculus",
+    "problem": "What is the gradient of \\(f(x,y)=x^{2}+y^{2}\\) at the point \\((1,1)\\)?",
+    "choices": {"A": "\\((1,1)\\)", "B": "\\((2,2)\\)", "C": "\\((0,0)\\)", "D": "\\((2,0)\\)", "E": "\\((4,4)\\)"},
+    "answer": "B",
+    "solution": "\\(\\nabla f=(f_x,f_y)=(2x,2y)\\). At \\((1,1)\\) this is \\(\\boxed{(2,2)}\\)."
+  },
+  {
+    "source": "gre_style", "contest": "GRE Math Subject", "number": 16, "url": "",
+    "topic": "multivariable_calculus",
+    "problem": "Evaluate \\(\\displaystyle\\int_0^{1}\\int_0^{1}(x+y)\\,dx\\,dy\\).",
+    "choices": {"A": "\\(\\tfrac12\\)", "B": "\\(1\\)", "C": "\\(2\\)", "D": "\\(\\tfrac14\\)", "E": "\\(\\tfrac32\\)"},
+    "answer": "B",
+    "solution": "Inner integral: \\(\\int_0^1(x+y)\\,dx=\\tfrac12+y\\). Then \\(\\int_0^1\\left(\\tfrac12+y\\right)dy=\\tfrac12+\\tfrac12=\\boxed{1}\\)."
+  },
+  {
+    "source": "gre_style", "contest": "GRE Math Subject", "number": 17, "url": "",
+    "topic": "complex_analysis",
+    "problem": "What is the value of \\(e^{i\\pi}\\)?",
+    "choices": {"A": "\\(1\\)", "B": "\\(-1\\)", "C": "\\(i\\)", "D": "\\(0\\)", "E": "\\(-i\\)"},
+    "answer": "B",
+    "solution": "By Euler's formula \\(e^{i\\theta}=\\cos\\theta+i\\sin\\theta\\), so \\(e^{i\\pi}=\\cos\\pi+i\\sin\\pi=-1\\). Answer: \\(\\boxed{-1}\\)."
+  }
+]
