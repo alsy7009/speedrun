@@ -1,0 +1,18 @@
+{
+  "description": "GRE Math Subject Test outline mapped to Speedrun topic:: tags. Weights follow the ETS outline (~50% calculus, ~25% algebra, ~25% additional) and sum to 1.0. Mirrored in rslib/src/stats/speedrun.rs (TOPIC_WEIGHTS) — keep in sync.",
+  "topics": [
+    {"tag": "calculus", "block": "calculus", "weight": 0.25},
+    {"tag": "multivariable_calculus", "block": "calculus", "weight": 0.10},
+    {"tag": "sequences_series", "block": "calculus", "weight": 0.10},
+    {"tag": "differential_equations", "block": "calculus", "weight": 0.05},
+    {"tag": "algebra", "block": "algebra", "weight": 0.10},
+    {"tag": "linear_algebra", "block": "algebra", "weight": 0.075},
+    {"tag": "abstract_algebra", "block": "algebra", "weight": 0.05},
+    {"tag": "number_theory", "block": "algebra", "weight": 0.025},
+    {"tag": "real_analysis", "block": "additional", "weight": 0.075},
+    {"tag": "probability", "block": "additional", "weight": 0.075},
+    {"tag": "combinatorics", "block": "additional", "weight": 0.05},
+    {"tag": "geometry", "block": "additional", "weight": 0.03},
+    {"tag": "complex_analysis", "block": "additional", "weight": 0.02}
+  ]
+}

@@ -5,6 +5,76 @@ See [prd.md](../prd.md) and [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) 
 
 ---
 
+## The three scores: Memory / Performance / Readiness (shown separately)
+
+Computed in the **shared Rust engine** (`rslib/src/stats/speedrun.rs`, new
+`GetSpeedrunScores` RPC in `proto/anki/stats.proto`) so desktop and phone show
+identical numbers. Formulas, weights, and give-up rules: [SCORES.md](SCORES.md).
+
+- **Memory** = mean FSRS retrievability over taught cards (give-up: < 20 graded
+  reviews). **Performance** = GRE-weighted first-attempt MC accuracy, shrunk
+  toward the 20% guess rate; uncovered topics count at guess rate (give-up:
+  < 30 first attempts or < 3 topics). **Readiness** = Performance mapped to
+  200–990 via documented piecewise-linear anchors; confidence capped at
+  *medium* because the mapping is an assumption (give-up: < 200 graded reviews
+  or < 50% weighted coverage — abstains stating exactly what's missing).
+- Topic weights: `speedrun/gre_topics.json` (ETS outline ≈ 50% calculus / 25%
+  algebra / 25% additional), mirrored as `TOPIC_WEIGHTS` in Rust.
+- MC tracking rewritten to a compact `custom_data` aggregate
+  `{"sr":{"n","k","f","t"}}` — the old per-attempt log silently exceeded
+  Anki's 100-byte custom_data cap after ~3 attempts (latent bug fixed).
+- New storage helpers (`speedrun_card_rows`, `speedrun_last_review_times`,
+  `speedrun_graded_review_count`) keep it one pass over cards + revlog —
+  read-only, no transaction, FSRS/undo untouched.
+- **Tests:** 5 Rust unit tests (weights, shrinkage, mapping anchors/monotonic,
+  abstain-on-empty, attempt parsing) + Python end-to-end test (abstain →
+  Memory appears past its give-up line; coverage math; integrity check).
+- **UI:** desktop `qt/aqt/speedrun_scores.py` — "Scores" toolbar button +
+  Tools-menu entry; mobile `SpeedrunScores.kt` — "Speedrun scores" in the
+  deck-list ⋮ menu. Both show all required fields per score and the abstain
+  state with the written give-up rule.
+- **Follow-ups (validation):** memory calibration (Brier/log-loss on held-out
+  reviews), performance held-out validation + 30×2 paraphrase test, leakage
+  check script.
+
+## Mixed sets are the default practice; GRE guaranteed in every mix
+
+Interleaved (mixed) practice is the app's core learning-science thesis, so the **Mixed
+sets are the default** and the single-source sets are opt-in. GRE topics stay disjoint
+from AMC (AMC = algebra/geometry/number-theory/combinatorics; GRE = calculus, sequences/
+series, ODEs, linear/abstract algebra, real/complex analysis, probability, multivariable
+— i.e. only what AMC does *not* cover).
+
+- **`Speedrun::Mixed::<tier> + GRE`** — **three** mixed sets (auto-imported), one per AMC
+  difficulty tier (AMC 8 / 10 / 12), so a learner studies at their level; study the parent
+  `Speedrun::Mixed` for an all-levels mix. Each is a single flat deck where the GRE
+  problems are **spread evenly through that tier's most recent contests**
+  (`build_all_decks.spread()` — GRE appears in every prefix). Because Anki gathers new
+  cards by *position* up to the daily limit, position-spreading **guarantees GRE is
+  gathered** even under a small `perDay`. Verified (AMC 12 mix, `perDay=20`): 5 GRE in the
+  first 20, at positions 4,5,11,15,16.
+- **`Speedrun::AMC 8/10/12`** (opt-in via picker): dedicated AMC-only tiers for blocked,
+  exam-specific practice.
+- **`Speedrun::GRE`** (opt-in via picker): dedicated GRE-only set, `Speedrun::GRE::<Topic>`.
+
+**Engine fix (ships to desktop + phone).** The topic interleaver previously used a
+"largest remaining bucket first" greedy, which clustered the minority GRE topics at the
+*end* of the queue (first GRE only at position 18 in a mixed deck). Replaced with a
+**least-emitted-fraction** strategy (`topic_interleaver.rs`): each step emits from the
+topic that has so far emitted the smallest fraction `(emitted+0.5)/size` of its cards
+(excluding the previous topic). This distributes *every* topic proportionally across the
+whole queue, so 1–2-card minority topics (a GRE subject) appear early and throughout,
+while still minimizing adjacency for a dominant topic. Integer cross-multiplication (no
+float), deterministic, preserves within-topic order — FSRS/undo untouched. New Rust test
+`spreads_minority_topics_throughout` + existing adjacency/order tests all green. Backend
+`.aar` rebuilt and re-bundled so the phone gets the same guarantee.
+
+- `speedrun/data/gre_problems.json` — original GRE-style MCQs (copyright-clean vs
+  scraping ETS PDFs; scalable later via AI + safety pipeline), tagged
+  `gre::gre_math_subject` / `source::gre_style` / `topic::*`.
+- Auto-import tracks **per-deck codes** (desktop `speedrun_imported_deck_codes`; Android
+  `StringSet`, both migrating the old boolean) so Mixed imports without duplicating AMC.
+
 ## Card UI — blue theme (matches mobile)
 
 - `speedrun/card_theme.css` — single source of truth for the MC card styling: an
@@ -103,17 +173,19 @@ interval, while keeping FSRS memory state valid and undo working. Default OFF.
 (strategy discrimination), in the shared Rust engine, without breaking FSRS/undo.
 
 - `proto/anki/deck_config.proto` — new `bool topic_interleaving = 47;` on `Config`.
-- `rslib/src/scheduler/queue/builder/topic_interleaver.rs` — greedy "most-remaining
-  distinct topic" reorder; resolves topic from each note's `topic::<name>` tag.
+- `rslib/src/scheduler/queue/builder/topic_interleaver.rs` — **least-emitted-fraction**
+  reorder (spreads every topic proportionally, so minority topics like a GRE subject
+  appear throughout, not clustered at the end); resolves topic from each note's
+  `topic::<name>` tag.
 - `rslib/src/scheduler/queue/builder/mod.rs` — `build_queues` prefetches a
   `note_id -> topic` map; `build()` permutes the gathered `review`/`new` vecs
   **after** `sort_new()`. Only ordering changes — FSRS state, due dates, intervals,
   and counts are untouched, so scheduling and undo stay valid.
 - `rslib/src/deckconfig/{mod,schema11}.rs` — default `false`, legacy round-trip
   (`topicInterleaving`) so the GUI/Python can toggle it (enables the ablation study).
-- **Tests:** 4 Rust unit tests (interleaver) + 1 Rust integration test (real queue
-  build) + 1 Python end-to-end test (interleaved order + answer/undo + integrity).
-  All green; clippy/mypy/ruff/svelte clean.
+- **Tests:** 5 Rust unit tests (interleaver, incl. minority-spread) + 1 Rust integration
+  test (real queue build) + 1 Python end-to-end test (interleaved order + answer/undo +
+  integrity). All green; clippy/mypy/ruff/svelte clean.
 - **Upstream files touched:** `deck_config.proto`, `deckconfig/mod.rs`,
   `deckconfig/schema11.rs`, `scheduler/queue/builder/mod.rs` (+ new module). Merge
   risk: low — append-only proto field, additive struct fields, one call site.

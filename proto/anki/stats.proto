@@ -16,6 +16,7 @@ service StatsService {
   rpc Graphs(GraphsRequest) returns (GraphsResponse);
   rpc GetGraphPreferences(generic.Empty) returns (GraphPreferences);
   rpc SetGraphPreferences(GraphPreferences) returns (generic.Empty);
+  rpc GetSpeedrunScores(generic.Empty) returns (SpeedrunScores);
 }
 
 // Implicitly includes any of the above methods that are not listed in the
@@ -241,4 +242,36 @@ message Dataset {
   repeated CardEntry cards = 2;
   repeated DeckEntry decks = 3;
   int64 next_day_at = 4;
+}
+
+// Speedrun: the three separate study scores (Memory / Performance /
+// Readiness). Each score carries the full honesty contract: point estimate,
+// likely range, coverage, confidence, reasons, and an explicit abstain state
+// with what is missing. See speedrun/SCORES.md for formulas and give-up rules.
+message SpeedrunScore {
+  // False = abstained; only abstain_reason is meaningful then.
+  bool available = 1;
+  // e.g. "Need 20 graded reviews (have 3)".
+  string abstain_reason = 2;
+  // Probability (Memory/Performance) or scaled score (Readiness).
+  float point = 3;
+  float range_low = 4;
+  float range_high = 5;
+  // "low" / "medium" / "high".
+  string confidence = 6;
+  repeated string reasons = 7;
+}
+
+message SpeedrunScores {
+  SpeedrunScore memory = 1;
+  SpeedrunScore performance = 2;
+  SpeedrunScore readiness = 3;
+  // Weighted % (0-100) of the GRE outline with at least one studied card.
+  float coverage_percent = 4;
+  // Revlog rows with ease 1-4.
+  uint32 graded_reviews = 5;
+  // First-attempt MC answers recorded across cards.
+  uint32 mc_first_attempts = 6;
+  // Unix timestamp of computation.
+  int64 last_updated = 7;
 }

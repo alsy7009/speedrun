@@ -219,7 +219,14 @@ def slug(value: str) -> str:
 
 def contest_tag(contest: str) -> str:
     s = slug(contest)
-    return f"amc::{s}" if s else "amc"
+    if not s:
+        return "amc"
+    low = contest.lower()
+    if "gre" in low:
+        return f"gre::{s}"
+    if any(k in low for k in ("amc", "ahsme", "ajhsme")):
+        return f"amc::{s}"
+    return f"exam::{s}"
 
 
 def add_problem(col: Collection, nt, problem: dict, deck_id) -> str:

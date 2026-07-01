@@ -4,6 +4,7 @@
 mod card;
 mod graphs;
 mod service;
+mod speedrun;
 mod today;
 
 pub use today::studied_today;

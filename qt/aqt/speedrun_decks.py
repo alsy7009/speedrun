@@ -68,7 +68,7 @@ class AmcDeckDialog(QDialog):
     def __init__(self, mw: Any) -> None:
         super().__init__(mw)
         self.mw = mw
-        self.setWindowTitle("Speedrun — Add AMC Decks")
+        self.setWindowTitle("Speedrun — Add Decks")
         self.resize(560, 520)
         self._checks: dict[str, QCheckBox] = {}
 
@@ -76,8 +76,12 @@ class AmcDeckDialog(QDialog):
         layout = QVBoxLayout(self)
 
         intro = QLabel(
-            "Choose AMC competition decks to add. Problems are interleaved across "
-            "topics (algebra / geometry / number theory / combinatorics)."
+            "Add Speedrun decks. The <b>Mixed</b> sets are the main practice: each "
+            "blends one AMC tier with GRE problems and guarantees GRE topics "
+            "(calculus, linear/abstract algebra, analysis, …) appear in every "
+            "session, interleaved so consecutive cards use different strategies. "
+            "The <b>AMC 8/10/12</b> and <b>GRE</b> sets are dedicated single-source "
+            "decks for targeted, blocked practice."
         )
         intro.setWordWrap(True)
         layout.addWidget(intro)
@@ -103,8 +107,9 @@ class AmcDeckDialog(QDialog):
         col = QVBoxLayout(container)
         for deck in manifest["decks"]:
             available = (DECKS_DIR / deck["file"]).exists()
+            name = deck.get("label", deck["tier"])
             label = (
-                f"<b>{deck['tier']}</b>{' ★' if deck.get('starter') else ''}"
+                f"<b>{name}</b>{' ★' if deck.get('starter') else ''}"
                 f" — {deck['problem_count']} problems · {deck.get('deck_count', 0)} decks"
                 f"<br><span style='color:#888'>{_topic_summary(deck.get('topics', {}))}</span>"
             )
@@ -133,13 +138,11 @@ class AmcDeckDialog(QDialog):
         line.setFrameShape(QFrame.Shape.HLine)
         layout.addWidget(line)
 
-        starter_btn = QPushButton("Add all tiers (AMC 8, 10, 12)")
+        starter_btn = QPushButton("Add all Mixed sets (recommended)")
         qconnect(starter_btn.clicked, self._add_starter)
         layout.addWidget(starter_btn)
 
-        buttons = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Close
-        )
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
         add_btn = QPushButton("Add selected")
         add_btn.setDefault(True)
         qconnect(add_btn.clicked, self._add_selected)
@@ -197,38 +200,42 @@ def _on_main_window_did_init() -> None:
     mw = aqt.mw
     if mw is None:
         return
-    action = QAction("Speedrun: Add AMC Decks…", mw)
+    action = QAction("Speedrun: Add Decks…", mw)
     qconnect(action.triggered, _open_dialog)
     mw.form.menuTools.addAction(action)
 
 
 def _on_top_toolbar_init_links(links: list[str], toolbar: Any) -> None:
-    """Add an 'AMC Decks' button to the top toolbar (Decks / Add / Browse / ...)."""
+    """Add a 'Decks' button to the top toolbar (Decks / Add / Browse / ...)."""
     links.append(
         toolbar.create_link(
             "speedrun_amc_decks",
-            "AMC Decks",
+            "Speedrun Decks",
             _open_dialog,
-            tip="Add Speedrun AMC competition decks",
+            tip="Add Speedrun decks (Mixed, AMC, GRE)",
             id="speedrun_amc_decks",
         )
     )
 
 
 def _import_starters_once(col: Any) -> None:
-    """Auto-import the AMC tier decks (AMC 8 / AMC 10 / AMC 12) the first time a
-    collection loads, mirroring the Android app. Each tier folder contains every
-    contest+year as a full-named subdeck (e.g. `AMC 10A 2023`). Guarded by a
-    config marker so later manual changes are respected.
+    """Auto-import starter decks (the Mixed sets) the first time each is seen,
+    mirroring the Android app. Tracks imported deck codes individually so newly
+    added starters import without re-importing/duplicating the ones already
+    present. Later manual removals are respected.
     """
     try:
-        if col.get_config("speedrun_tier_decks_imported", False):
-            return
         manifest = _load_manifest()
         if not manifest:
             return
+        imported = set(col.get_config("speedrun_imported_deck_codes", None) or [])
+        # Migrate the old single-boolean marker: the 3 AMC tiers were imported.
+        if not imported and col.get_config("speedrun_tier_decks_imported", False):
+            imported = {"AMC_8", "AMC_10", "AMC_12"}
+        newly = []
         for deck in manifest.get("decks", []):
-            if not deck.get("starter"):
+            code = deck.get("code")
+            if not deck.get("starter") or code in imported:
                 continue
             path = DECKS_DIR / deck["file"]
             if not path.exists():
@@ -243,7 +250,11 @@ def _import_starters_once(col: Any) -> None:
                     ),
                 )
             )
-        col.set_config("speedrun_tier_decks_imported", True)
+            newly.append(code)
+        if newly:
+            col.set_config(
+                "speedrun_imported_deck_codes", sorted(imported | set(newly))
+            )
     except Exception as exc:  # never block collection load over deck seeding
         print(f"speedrun tier deck import error: {exc}")
 

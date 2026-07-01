@@ -4,7 +4,9 @@ Speedrun makes two changes to Anki's Rust engine (`rslib`), both driven by note
 tags of the form `topic::<name>` and gated behind deck-config options:
 
 1. **Topic-aware interleaving queue** — reorders the gathered review/new queue so
-   consecutive cards come from different topics (strategy discrimination).
+   consecutive cards come from different topics (strategy discrimination) and every
+   topic is spread proportionally, so minority topics (e.g. a GRE subject mixed into
+   AMC) appear throughout the session rather than clustered at the end.
 2. **Topic-aware scheduling** — shortens the next review interval for weak
    (high FSRS-difficulty) topic-tagged cards so they come back sooner.
 
@@ -50,7 +52,7 @@ existing engine data.
 **Rust unit tests** (`rslib`):
 - `scheduler/queue/builder/topic_interleaver.rs`: `separates_consecutive_when_balanced`,
   `minimizes_adjacency_for_dominant_topic`, `handles_degenerate_cases`,
-  `preserves_within_topic_order`.
+  `preserves_within_topic_order`, `spreads_minority_topics_throughout`.
 - `scheduler/states/review.rs`: `topic_scheduling_shortens_passing_intervals`,
   `topic_scheduling_under_fsrs_preserves_memory_state`.
 
