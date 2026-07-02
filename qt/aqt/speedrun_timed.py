@@ -21,6 +21,7 @@ template. A static score/solution summary is also available under Tools.
 from __future__ import annotations
 
 import json
+import time
 from typing import Any
 
 import aqt
@@ -40,11 +41,30 @@ from aqt.qt import (
 from aqt.utils import showInfo, tooltip
 
 # Card ids in the current timed session (captured at start, before they leave
-# the filtered deck as they're answered).
+# the filtered deck as they're answered). Also persisted to the collection
+# config so the review still works after an app restart.
 _session_cids: list[int] = []
 _session_active = False
+# Epoch-ms when the current test was started/rebuilt. Injected into every card
+# as window.SR_TIMED_START so the countdown resets whenever the test is rebuilt.
+_session_start_ms = 0
+
+_CONFIG_KEY = "speedrun_timed_session"
+
+
+def _session(mw: Any) -> list[int]:
+    """The last timed session's card ids — from memory, falling back to the
+    persisted config (survives restarts)."""
+    if _session_cids:
+        return _session_cids
+    try:
+        return [int(c) for c in (mw.col.get_config(_CONFIG_KEY, None) or [])]
+    except Exception:
+        return []
 
 # Self-contained countdown banner (inline-styled; no template/CSS dependency).
+# The session start is provided by the host (window.SR_TIMED_START) so rebuilding
+# the deck restarts the clock from 40:00.
 _TIMER_WIDGET = """
 <div id="sr-timed-banner" style="display:inline-block;font:700 13px -apple-system,
 'Segoe UI',Roboto,sans-serif;letter-spacing:.04em;color:#0d47a1;background:#e3f0fb;
@@ -53,14 +73,9 @@ border:1px solid #b7d6f4;border-radius:999px;padding:6px 15px;margin-bottom:14px
 (function () {
   var el = document.getElementById("sr-timed-banner");
   if (!el) return;
-  var KEY = "sr_timed_start", LIMIT = 40 * 60 * 1000, STALE = 60 * 60 * 1000;
-  var start = 0;
-  try { start = Number(sessionStorage.getItem(KEY) || 0); } catch (e) {}
-  var now = Date.now();
-  if (!start || now - start > STALE) {
-    start = now;
-    try { sessionStorage.setItem(KEY, String(start)); } catch (e) {}
-  }
+  var LIMIT = 40 * 60 * 1000;
+  var start = Number(window.SR_TIMED_START || 0);
+  if (!start) { start = Date.now(); }  // fallback if host didn't provide one
   function tick() {
     var left = LIMIT - (Date.now() - start);
     if (left <= 0) {
@@ -103,17 +118,19 @@ def _in_timed_deck(card: Any) -> bool:
 
 def _inject_timed(text: str, card: Any, kind: str) -> str:
     """Add the countdown to timed-test cards, and hide the solution on the
-    answer side so it isn't revealed mid-test."""
+    answer side so it isn't revealed mid-test. The session start is injected as
+    window.SR_TIMED_START so the clock resets each time the test is rebuilt."""
     if not _in_timed_deck(card):
         return text
-    out = _TIMER_WIDGET + text
+    start = _session_start_ms or int(time.time() * 1000)
+    out = f"<script>window.SR_TIMED_START={start};</script>" + _TIMER_WIDGET + text
     if kind in ("reviewAnswer", "clayoutAnswer"):
         out += _HIDE_SOLUTION
     return out
 
 
 def _start_timed_test() -> None:
-    global _session_cids, _session_active
+    global _session_cids, _session_active, _session_start_ms
     mw = aqt.mw
     if mw is None or mw.col is None:
         return
@@ -127,7 +144,9 @@ def _start_timed_test() -> None:
         return
     # Capture the session's cards now, before answering moves them out.
     _session_cids = list(mw.col.find_cards(f"did:{did}"))
+    mw.col.set_config(_CONFIG_KEY, _session_cids)  # survives app restart
     _session_active = True
+    _session_start_ms = int(time.time() * 1000)  # restart the 40:00 clock
     mw.col.decks.set_current(did)
     mw.reset()
     mw.moveToState("overview")
@@ -142,7 +161,7 @@ def _start_timed_test() -> None:
 def _wrong_cids(mw: Any) -> list[int]:
     """Session cards whose first attempt was not correct (missed or unanswered)."""
     out = []
-    for cid in _session_cids:
+    for cid in _session(mw):
         try:
             card = mw.col.get_card(cid)
         except Exception:
@@ -153,25 +172,33 @@ def _wrong_cids(mw: Any) -> list[int]:
 
 
 def _on_reviewer_will_end() -> None:
-    """Phase 1 finished: gather the misses and launch interactive drill (Phase 2)."""
+    """Phase 1 finished: automatically pop the in-app review screen (a modal is
+    far more reliable to show mid-transition than a state change)."""
     global _session_active
     if not _session_active:
         return
     _session_active = False
     mw = aqt.mw
-    if mw is None or mw.col is None or not _session_cids:
+    if mw is None or mw.col is None or not _session(mw):
         return
     # Defer so the current reviewer finishes tearing down first.
     from aqt.qt import QTimer
 
-    QTimer.singleShot(150, _start_mistake_drill)
+    QTimer.singleShot(200, _show_post_test_review)
+
+
+def _show_post_test_review() -> None:
+    mw = aqt.mw
+    if mw is None or mw.col is None or not _session(mw):
+        return
+    TimedReviewDialog(mw, _session(mw)).show()
 
 
 def _start_mistake_drill() -> None:
     mw = aqt.mw
     if mw is None or mw.col is None:
         return
-    total = len(_session_cids)
+    total = len(_session(mw))
     wrong = _wrong_cids(mw)
     correct = total - len(wrong)
     did = build_review_deck(mw.col, wrong)
@@ -183,10 +210,11 @@ def _start_mistake_drill() -> None:
         return
     mw.col.decks.set_current(did)
     mw.reset()
-    mw.moveToState("overview")
+    # Go straight into the flashcard review of the missed cards: solutions are
+    # shown and the Again/Hard/Good/Easy rating feeds FSRS (what to review next).
+    mw.moveToState("review")
     tooltip(
-        f"Test complete: {correct}/{total} correct. Now drill the {len(wrong)} "
-        "you missed — solutions shown.",
+        f"Reviewing the {len(wrong)} you missed — read each solution and rate it.",
         parent=mw,
     )
 
@@ -218,6 +246,8 @@ class TimedReviewDialog(QDialog):
 
         self.setStyleSheet(DIALOG_QSS)
 
+        self.mw = mw
+        self._wrong: list[int] = []
         answered = correct = 0
         blocks = []
         for cid in cids:
@@ -231,6 +261,8 @@ class TimedReviewDialog(QDialog):
                 answered += 1
                 if verdict:
                     correct += 1
+            if verdict is not True:
+                self._wrong.append(cid)
             badge = (
                 "<span style='color:#2e7d32;font-weight:700'>&#10003; Correct</span>"
                 if verdict
@@ -256,7 +288,8 @@ class TimedReviewDialog(QDialog):
             f"<div style='font-size:22px;font-weight:800;color:#102a43'>"
             f"Score: {correct} / {answered} &nbsp;({pct}%)</div>"
             f"<div style='color:#5a7184;margin:4px 0 16px'>"
-            f"{len(cids)} questions in this session. Review the worked solutions below.</div>"
+            f"{len(cids)} questions in this session. Read the worked solutions below, "
+            f"then rate the ones you missed to schedule them for review.</div>"
         )
 
         layout = QVBoxLayout(self)
@@ -274,17 +307,30 @@ class TimedReviewDialog(QDialog):
         layout.addWidget(scroll, 1)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
         qconnect(buttons.rejected, self.reject)
+        if self._wrong:
+            from aqt.qt import QPushButton
+
+            drill = QPushButton(f"Review the {len(self._wrong)} I missed — rate them →")
+            drill.setDefault(True)
+            qconnect(drill.clicked, self._start_drill)
+            buttons.addButton(drill, QDialogButtonBox.ButtonRole.AcceptRole)
         layout.addWidget(buttons)
+
+    def _start_drill(self) -> None:
+        # User-initiated (button click) → moveToState("review") is reliable here.
+        self.accept()
+        _start_mistake_drill()
 
 
 def _open_review() -> None:
     mw = aqt.mw
     if mw is None or mw.col is None:
         return
-    if not _session_cids:
-        showInfo("No timed test has been run yet this session.", parent=mw)
+    cids = _session(mw)
+    if not cids:
+        showInfo("No timed test has been run yet.", parent=mw)
         return
-    TimedReviewDialog(mw, list(_session_cids)).show()
+    TimedReviewDialog(mw, cids).show()
 
 
 def _on_main_window_did_init() -> None:
@@ -305,8 +351,17 @@ def _on_top_toolbar_init_links(links: list[str], toolbar: Any) -> None:
             "speedrun_timed",
             "Timed Test",
             _start_timed_test,
-            tip="10 questions, 20 minutes, solutions at the end",
+            tip="20 questions, 40 minutes; review your misses after",
             id="speedrun_timed",
+        )
+    )
+    links.append(
+        toolbar.create_link(
+            "speedrun_review",
+            "Review",
+            _open_review,
+            tip="Review your last timed test: solutions + rate what you missed",
+            id="speedrun_review",
         )
     )
 

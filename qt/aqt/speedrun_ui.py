@@ -114,12 +114,13 @@ body.fancy:not(.flat) .hitem:hover {
   text-decoration: none;
 }
 .header .hitem:active { transform: scale(0.97); }
-#speedrun_scores, #speedrun_settings, #speedrun_amc_decks, #speedrun_timed {
+#speedrun_scores, #speedrun_settings, #speedrun_amc_decks, #speedrun_timed,
+#speedrun_review {
   background: rgba(255, 255, 255, 0.12) !important;
   border: 1px solid rgba(255, 255, 255, 0.4) !important;
 }
 #speedrun_scores:hover, #speedrun_settings:hover, #speedrun_amc_decks:hover,
-#speedrun_timed:hover {
+#speedrun_timed:hover, #speedrun_review:hover {
   background: rgba(255, 255, 255, 0.28) !important;
 }
 /* Sync state colors must stay visible on the blue gradient. */

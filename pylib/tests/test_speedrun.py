@@ -149,8 +149,11 @@ def test_timed_test_filtered_deck():
     assert col.decks.name(did) == TIMED_DECK_NAME
     # Exactly 20 questions gathered into the filtered deck.
     assert len(col.find_cards(f'deck:"{TIMED_DECK_NAME}"')) == 20
+    # One-shot / test-like: preview mode (no rescheduling into learning).
+    conf = col.sched.get_or_create_filtered_deck(did).config
+    assert conf.reschedule is False
 
-    # Studying the test works and feeds real scheduling (reschedule=True).
+    # Studying the test works and undo stays valid.
     col.decks.set_current(did)
     card = col.sched.getCard()
     assert card is not None
