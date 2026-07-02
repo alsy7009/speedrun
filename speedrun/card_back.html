@@ -1,0 +1,36 @@
+{{FrontSide}}
+<hr id="answer">
+<div id="sr-feedback" class="feedback neutral"></div>
+<div class="solution">{{Solution}}</div>
+{{#URL}}<div class="src">Source: <a href="{{URL}}">{{Source}} {{Contest}} {{Year}} #{{Number}}</a></div>{{/URL}}
+<script>
+(function () {
+  var correct = "{{Answer}}".trim();
+  var sel = null;
+  try { sel = sessionStorage.getItem("sr_sel"); } catch (e) {}
+  document.querySelectorAll("#sr-choices .choice").forEach(function (btn) {
+    btn.classList.add("locked");
+    btn.disabled = true;
+    var letter = btn.getAttribute("data-letter");
+    if (letter === correct) btn.classList.add("correct");
+    else if (sel && letter === sel) btn.classList.add("incorrect");
+  });
+  var fb = document.getElementById("sr-feedback");
+  if (fb) {
+    if (!sel) {
+      fb.className = "feedback neutral";
+      fb.innerHTML = "Correct answer: <b>" + correct + "</b>";
+    } else if (sel === correct) {
+      fb.className = "feedback ok";
+      fb.innerHTML = "\u2713 Correct \u2014 you chose <b>" + sel + "</b>";
+    } else {
+      fb.className = "feedback bad";
+      fb.innerHTML = "\u2717 Incorrect \u2014 you chose <b>" + sel + "</b>; correct is <b>" + correct + "</b>";
+    }
+  }
+  if (typeof pycmd !== "undefined") {
+    var c = sel ? (sel === correct ? "1" : "0") : "";
+    pycmd("speedrun:attempt:" + c + ":" + (sel || ""));
+  }
+})();
+</script>

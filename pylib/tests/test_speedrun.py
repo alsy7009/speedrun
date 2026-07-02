@@ -7,8 +7,11 @@ consecutive cards differ in topic, that answering + undo still work, and that th
 collection passes an integrity check.
 """
 
+# isort: skip_file
+# tests.shared must be imported first: it pulls in anki.collection fully,
+# avoiding a circular import if anki.decks is imported before the package is
+# initialized.
 from tests.shared import getEmptyCol
-
 from anki.decks import DeckId
 
 
@@ -118,4 +121,70 @@ def test_speedrun_scores_abstain_then_show():
     assert abs(scores.coverage_percent - 35.0) < 0.01
 
     # Collection must remain consistent after the read-only query.
+    assert col.db.scalar("pragma integrity_check") == "ok"
+
+
+def test_timed_test_filtered_deck():
+    """The timed test gathers up to 20 random due/new Speedrun cards into a
+    filtered deck; answering reschedules normally and undo still works."""
+    from anki.speedrun import TIMED_DECK_NAME, build_timed_test
+
+    col = getEmptyCol()
+
+    # No Speedrun cards yet -> abstains.
+    assert build_timed_test(col) is None
+
+    # Create a Speedrun deck with 25 tagged cards.
+    deck_id = col.decks.id("Speedrun::Mixed::Test")
+    model = col.models.by_name("Basic")
+    for i in range(25):
+        note = col.new_note(model)
+        note["Front"] = f"q{i}"
+        note["Back"] = f"a{i}"
+        note.tags = ["topic::algebra" if i % 2 else "topic::calculus"]
+        col.add_note(note, deck_id)
+
+    did = build_timed_test(col)
+    assert did is not None
+    assert col.decks.name(did) == TIMED_DECK_NAME
+    # Exactly 20 questions gathered into the filtered deck.
+    assert len(col.find_cards(f'deck:"{TIMED_DECK_NAME}"')) == 20
+
+    # Studying the test works and feeds real scheduling (reschedule=True).
+    col.decks.set_current(did)
+    card = col.sched.getCard()
+    assert card is not None
+    col.sched.answerCard(card, 3)
+    col.undo()
+    assert col.db.scalar("pragma integrity_check") == "ok"
+
+    # Rebuilding is idempotent: same deck, refreshed contents.
+    assert build_timed_test(col) == did
+    assert len(col.find_cards(f'deck:"{TIMED_DECK_NAME}"')) == 20
+
+
+def test_review_mistakes_deck():
+    """Phase 2 gathers exactly the supplied (missed) cards for re-practice."""
+    from anki.speedrun import REVIEW_DECK_NAME, build_review_deck
+
+    col = getEmptyCol()
+    assert build_review_deck(col, []) is None  # nothing missed -> no deck
+
+    deck_id = col.decks.id("Speedrun::Mixed::Test")
+    model = col.models.by_name("Basic")
+    cids = []
+    for i in range(10):
+        note = col.new_note(model)
+        note["Front"] = f"q{i}"
+        note["Back"] = f"a{i}"
+        note.tags = ["topic::algebra"]
+        col.add_note(note, deck_id)
+        cids.extend(note.card_ids())
+
+    wrong = cids[:4]
+    did = build_review_deck(col, wrong)
+    assert did is not None
+    assert col.decks.name(did) == REVIEW_DECK_NAME
+    gathered = set(col.find_cards(f'deck:"{REVIEW_DECK_NAME}"'))
+    assert gathered == set(wrong)
     assert col.db.scalar("pragma integrity_check") == "ok"

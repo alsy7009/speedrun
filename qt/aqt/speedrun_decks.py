@@ -70,6 +70,9 @@ class AmcDeckDialog(QDialog):
         self.mw = mw
         self.setWindowTitle("Speedrun — Add Decks")
         self.resize(560, 520)
+        from aqt.speedrun_ui import DIALOG_QSS
+
+        self.setStyleSheet(DIALOG_QSS)
         self._checks: dict[str, QCheckBox] = {}
 
         manifest = _load_manifest()

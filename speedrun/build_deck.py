@@ -124,76 +124,13 @@ def to_mathjax(text: str) -> str:
 # (qt/aqt/speedrun_theme.py) and generated decks share one source of truth.
 CARD_CSS = (Path(__file__).resolve().parent / "card_theme.css").read_text()
 
-# Front: problem stem + clickable choices. Clicking locks the selection (stored in
-# sessionStorage) and reveals the answer side via pycmd("ans").
-QFMT = """
-<div class="meta">{{Contest}} {{Year}} &middot; Problem {{Number}} &middot; {{Topic}}</div>
-<div class="problem">{{Problem}}</div>
-<div class="choices" id="sr-choices">
-  <button type="button" class="choice" data-letter="A">{{ChoiceA}}</button>
-  <button type="button" class="choice" data-letter="B">{{ChoiceB}}</button>
-  <button type="button" class="choice" data-letter="C">{{ChoiceC}}</button>
-  <button type="button" class="choice" data-letter="D">{{ChoiceD}}</button>
-  {{#ChoiceE}}<button type="button" class="choice" data-letter="E">{{ChoiceE}}</button>{{/ChoiceE}}
-</div>
-<script>
-(function () {
-  try { sessionStorage.removeItem("sr_sel"); } catch (e) {}
-  var locked = false;
-  document.querySelectorAll("#sr-choices .choice").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      if (locked) return;
-      locked = true;
-      var letter = btn.getAttribute("data-letter");
-      try { sessionStorage.setItem("sr_sel", letter); } catch (e) {}
-      btn.classList.add("selected");
-      if (typeof pycmd !== "undefined") { pycmd("ans"); }
-    });
-  });
-})();
-</script>
-"""
-
-# Back: lock the choices, mark correct/incorrect, give feedback, reveal the
-# solution, and report the attempt (correctness + chosen letter) to the host app.
-AFMT = """
-{{FrontSide}}
-<hr id="answer">
-<div id="sr-feedback" class="feedback neutral"></div>
-<div class="solution">{{Solution}}</div>
-{{#URL}}<div class="src">Source: <a href="{{URL}}">{{Source}} {{Contest}} {{Year}} #{{Number}}</a></div>{{/URL}}
-<script>
-(function () {
-  var correct = "{{Answer}}".trim();
-  var sel = null;
-  try { sel = sessionStorage.getItem("sr_sel"); } catch (e) {}
-  document.querySelectorAll("#sr-choices .choice").forEach(function (btn) {
-    btn.classList.add("locked");
-    btn.disabled = true;
-    var letter = btn.getAttribute("data-letter");
-    if (letter === correct) btn.classList.add("correct");
-    else if (sel && letter === sel) btn.classList.add("incorrect");
-  });
-  var fb = document.getElementById("sr-feedback");
-  if (fb) {
-    if (!sel) {
-      fb.className = "feedback neutral";
-      fb.innerHTML = "Correct answer: <b>" + correct + "</b>";
-    } else if (sel === correct) {
-      fb.className = "feedback ok";
-      fb.innerHTML = "\\u2713 Correct \\u2014 you chose <b>" + sel + "</b>";
-    } else {
-      fb.className = "feedback bad";
-      fb.innerHTML = "\\u2717 Incorrect \\u2014 you chose <b>" + sel + "</b>; correct is <b>" + correct + "</b>";
-    }
-  }
-  if (typeof pycmd !== "undefined") {
-    var c = sel ? (sel === correct ? "1" : "0") : "";
-    pycmd("speedrun:attempt:" + c + ":" + (sel || ""));
-  }
-})();
-</script>
-"""
+# Card templates live in card_front.html / card_back.html so the desktop app
+# (qt/aqt/speedrun_theme.py) and generated decks share one source of truth.
+# Front: clickable choices (locks selection, reveals answer) + the timed-test
+# countdown banner. Back: correct/incorrect feedback, worked solution, and the
+# attempt report to the host app.
+QFMT = (Path(__file__).resolve().parent / "card_front.html").read_text()
+AFMT = (Path(__file__).resolve().parent / "card_back.html").read_text()
 
 
 def ensure_notetype(col: Collection):

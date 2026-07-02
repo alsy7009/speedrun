@@ -75,6 +75,43 @@ point · range · coverage % · confidence · last updated · reasons · abstain
 state. When a score abstains, nothing that looks like a score is shown — only
 the missing requirements.
 
+## Worked examples (inputs → outputs)
+
+**A) Early student — Readiness abstains (the give-up rule at work).**
+Inputs: 142 graded reviews; studied cards in calculus (mean R 0.71) and algebra
+(mean R 0.66); 21 MC first-attempts across 2 topics; weighted coverage 38%.
+Outputs:
+- Memory → **68%**, range 61–75%, confidence *low* (≥20 reviews, so it shows).
+- Performance → **abstains**: "Need 30 first-try answers across 3+ topics
+  (have 21 across 2)."
+- Readiness → **abstains**: "No score until you have: 58 more graded reviews;
+  12% more topic coverage." (Needs ≥200 reviews **and** ≥50% coverage.)
+
+**B) Further along — all three show.**
+Inputs: 240 graded reviews; 120 MC first-attempts over 7 topics; per-topic
+first-attempt accuracy e.g. calculus 18/30, linear_algebra 9/12, algebra 22/28,
+…; weighted coverage 62%.
+Outputs (illustrative):
+- Memory → **74%**, range 70–78%, confidence *medium*.
+- Performance → **P ≈ 0.55**, range 0.49–0.61 (GRE-weighted, uncovered topics
+  counted at the 0.20 guess rate). Reason: "Lowest accuracy: real analysis
+  (33%)."
+- Readiness → **≈ 700**, likely range 660–740, confidence *medium* because the
+  raw→scaled mapping is an assumption. Reason: "Biggest drag: real analysis
+  (33% on 7.5% of the exam)."
+
+*(Numbers illustrate the contract and the give-up thresholds; exact values move
+with the data. The abstain thresholds and the 200–990 anchors are the fixed,
+documented parts.)*
+
+## Interleaving: before → after (the Rust change, visibly doing something)
+
+Gathered queue (blocked): `alg, alg, alg, geo, geo, calc, calc`
+After the least-emitted-fraction interleaver:
+`alg, geo, calc, alg, geo, alg, calc` — no two adjacent share a topic, and the
+minority topic (calc) is spread across the queue instead of clustered at the
+end. Verified by `topic_interleaver.rs` tests + the Python end-to-end test.
+
 ## Follow-ups (validation deliverables, not yet built)
 
 - Memory calibration (held-out reviews → calibration chart, Brier/log-loss).

@@ -117,12 +117,16 @@ from aqt import speedrun_decks  # isort:skip
 from aqt import speedrun_settings  # isort:skip
 from aqt import speedrun_theme  # isort:skip
 from aqt import speedrun_scores  # isort:skip
+from aqt import speedrun_ui  # isort:skip
+from aqt import speedrun_timed  # isort:skip
 
 speedrun_tracking.init()
 speedrun_decks.init()
 speedrun_settings.init()
 speedrun_theme.init()
 speedrun_scores.init()
+speedrun_ui.init()
+speedrun_timed.init()
 
 
 class DialogManager:

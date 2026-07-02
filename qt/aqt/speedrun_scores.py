@@ -68,6 +68,9 @@ class SpeedrunScoresDialog(QDialog):
         self.mw = mw
         self.setWindowTitle("Speedrun — Scores")
         self.resize(560, 620)
+        from aqt.speedrun_ui import DIALOG_QSS
+
+        self.setStyleSheet(DIALOG_QSS)
 
         scores = mw.col._backend.get_speedrun_scores()
         updated = time.strftime("%Y-%m-%d %H:%M", time.localtime(scores.last_updated))

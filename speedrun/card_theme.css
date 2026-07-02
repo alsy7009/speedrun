@@ -57,3 +57,24 @@
 .nightMode #answer { border-top-color: #1c3350; }
 .nightMode .feedback.neutral { color: #64b5f6; }
 .nightMode .solution { background: #16283f; border-left-color: #42a5f5; }
+
+/* Timed-test countdown banner (shown only in the Speedrun Timed Test deck). */
+.timer {
+  display: inline-block;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  color: #0d47a1;
+  background: #e3f0fb;
+  border: 1px solid #b7d6f4;
+  border-radius: 999px;
+  padding: 5px 14px;
+  margin-bottom: 14px;
+}
+.timer.up {
+  color: #b3261e;
+  background: #fdecea;
+  border-color: #f2b8b5;
+}
+.nightMode .timer { color: #90caf9; background: #14263d; border-color: #24405f; }
+.nightMode .timer.up { color: #f2b8b5; background: #3a1f1d; border-color: #5c2b28; }

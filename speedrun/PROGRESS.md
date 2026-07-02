@@ -5,6 +5,78 @@ See [prd.md](../prd.md) and [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) 
 
 ---
 
+## Practice test (20 questions / 40 minutes) — desktop + mobile
+
+A real practice test — the highest-yield way to raise a score — in two phases:
+**test pass** (answer all 20, no solutions), then **drill the misses**
+(interactive re-practice with solutions).
+
+- **Due-driven motivation:** each phase is a real **filtered deck**
+  (`reschedule=true`, `pylib/anki/speedrun.py`): `build_timed_test` gathers 20
+  random due/unseen Speedrun cards ("Speedrun Timed Test"); `build_review_deck`
+  gathers exactly the missed cards ("Speedrun Review Mistakes"). Both show a due
+  count and feed FSRS, the three scores, and topic-aware scheduling.
+- **Phase 1 (test):** solution stays **hidden** — pick an answer, rate
+  difficulty to advance, cycle through all 20 under a 40:00 clock.
+- **Phase 2 (drill):** when the test finishes, the cards whose first attempt was
+  wrong (or unanswered) are gathered and opened for **interactive** re-practice
+  — solutions shown, normal flow. Desktop auto-launches it via
+  `reviewer_will_end`; mobile offers it from the ⋮ menu ("Review missed
+  questions"). Correctness comes from the MC first-attempt in `custom_data`.
+- **Countdown + solution-hiding are host-injected** (self-contained, inline
+  styles; no dependency on the deck's stored template/CSS, so decks imported
+  before this existed still work). `{{Deck}}` can't drive it — for a filtered
+  deck it renders the card's *home* deck, not "Timed Test".
+  - **Desktop:** `card_will_show` hook (`qt/aqt/speedrun_timed.py`) keyed on
+    `card.did`; injects the banner on both sides and hides
+    solution/source/verdict on the answer side. `reviewer_will_end` opens the
+    rich review dialog (score + each question's solution + ✓/✗).
+  - **Mobile:** the reviewer's `updateCard` (`AbstractFlashcardViewer.kt`) keyed
+    on `decks.getCurrentId()` injects the same banner + hide-solution;
+    `SpeedrunTimedTest.kt` captures the session's cards and a "Timed test
+    review" menu item shows a score + per-question summary.
+- Templates were extracted to `card_front.html` / `card_back.html` (shared by
+  the deck builder and refreshed onto the note type at load by
+  `qt/aqt/speedrun_theme.py`), so existing decks get the timer without re-import.
+- **Entry points:** desktop "Timed Test" toolbar button + Tools menu
+  (`qt/aqt/speedrun_timed.py`); mobile deck-list menu → "Timed test"
+  (`SpeedrunTimedTest.kt`). Both rebuild the deck and drop you into it.
+- **Test:** `pylib/tests/test_speedrun.py::test_timed_test_filtered_deck`
+  (gathers exactly 10, reschedules, undo works, idempotent rebuild). APK rebuilt.
+
+## Two-way sync (desktop ↔ phone) via the built-in self-hosted server
+
+Anki's engine ships a standalone sync server (`rslib/sync`, binary
+`anki-sync-server`) — no Firebase or external service needed; both apps speak
+its protocol natively because they run the same engine.
+
+- `speedrun/sync_server.sh` builds/starts it (default `speedrun:speedrun` on
+  port 8080; data in `speedrun/out/syncserver`). Desktop: Preferences →
+  Syncing → self-hosted server `http://127.0.0.1:8080/`. AnkiDroid: Settings →
+  Sync → custom server `http://10.0.2.2:8080/` (emulator) or the Mac's LAN IP.
+- **Conflict rule (documented):** review history (revlog) always merges — no
+  lost or double-counted reviews. If the *same card* is reviewed offline on
+  two devices, both revlog entries survive and the card's scheduling state
+  converges to the most recently modified device's version on both sides.
+  If collections diverge beyond a normal merge, Anki requires an explicit
+  one-way full sync (the user picks the winner).
+- **Tests** (`pylib/tests/test_speedrun_sync.py`, boots a real server):
+  two-device offline reviews merge with identical unique revlog on both ends +
+  integrity check; same-card conflict keeps both history entries and converges
+  card state per the rule above. Both pass.
+
+## Desktop skin — Speedrun brand over Anki's webview UI
+
+Anki's desktop is a Qt shell around webviews; every built-in page is styled by
+CSS design tokens. `qt/aqt/speedrun_ui.py` hooks `webview_will_set_content` to
+override those tokens app-wide (Speedrun blues, rounded corners, light + night
+mode) and adds targeted styling: a gradient brand toolbar with pill buttons,
+an elevated card deck list with count pills, and rounded study buttons. A
+shared Qt stylesheet (`DIALOG_QSS`) restyles the Scores / Settings / Add Decks
+dialogs to match. No fork of Anki's Svelte/ts needed — pure injection, so
+upstream merges stay trivial. (Mobile already is the blue Material reference
+the desktop now matches.)
+
 ## The three scores: Memory / Performance / Readiness (shown separately)
 
 Computed in the **shared Rust engine** (`rslib/src/stats/speedrun.rs`, new

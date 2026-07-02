@@ -1,0 +1,66 @@
+<div id="sr-timer" class="timer" style="display:none" data-deck="{{Deck}}"></div>
+<div class="meta">{{Contest}} {{Year}} &middot; Problem {{Number}} &middot; {{Topic}}</div>
+<div class="problem">{{Problem}}</div>
+<div class="choices" id="sr-choices">
+  <button type="button" class="choice" data-letter="A">{{ChoiceA}}</button>
+  <button type="button" class="choice" data-letter="B">{{ChoiceB}}</button>
+  <button type="button" class="choice" data-letter="C">{{ChoiceC}}</button>
+  <button type="button" class="choice" data-letter="D">{{ChoiceD}}</button>
+  {{#ChoiceE}}<button type="button" class="choice" data-letter="E">{{ChoiceE}}</button>{{/ChoiceE}}
+</div>
+<script>
+(function () {
+  try { sessionStorage.removeItem("sr_sel"); } catch (e) {}
+  var locked = false;
+  document.querySelectorAll("#sr-choices .choice").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      if (locked) return;
+      locked = true;
+      var letter = btn.getAttribute("data-letter");
+      try { sessionStorage.setItem("sr_sel", letter); } catch (e) {}
+      btn.classList.add("selected");
+      if (typeof pycmd !== "undefined") { pycmd("ans"); }
+    });
+  });
+})();
+</script>
+<script>
+/* Timed-test countdown: 20:00 for a 10-question session (2 min/question with
+   shared budget, so students practice pacing the whole test, not one item).
+   Shown only in the "Speedrun Timed Test" deck. The session start persists in
+   sessionStorage across cards; a start older than 30 min counts as a new
+   session. Works identically on desktop and AnkiDroid (pure template JS). */
+(function () {
+  var el = document.getElementById("sr-timer");
+  if (!el) return;
+  // The current (filtered) deck name is provided by the host as window.SR_DECK
+  // (desktop card_will_show / AnkiDroid reviewer). {{Deck}} can't be used: for a
+  // filtered deck it resolves to the card's *home* deck, not "Timed Test".
+  var deck = (window.SR_DECK || el.getAttribute("data-deck") || "").toLowerCase();
+  if (deck.indexOf("timed test") === -1) { el.style.display = "none"; return; }
+  var KEY = "sr_timed_start", LIMIT = 20 * 60 * 1000, STALE = 30 * 60 * 1000;
+  var start = 0;
+  try { start = Number(sessionStorage.getItem(KEY) || 0); } catch (e) {}
+  var now = Date.now();
+  if (!start || now - start > STALE) {
+    start = now;
+    try { sessionStorage.setItem(KEY, String(start)); } catch (e) {}
+  }
+  el.style.display = "";
+  function tick() {
+    var left = LIMIT - (Date.now() - start);
+    if (left <= 0) {
+      el.className = "timer up";
+      el.textContent = "\u23F1 Time's up \u2014 wrap up and study the solutions";
+      return;
+    }
+    var m = Math.floor(left / 60000);
+    var s = Math.floor((left % 60000) / 1000);
+    el.className = "timer";
+    el.textContent = "\u23F1 Timed test \u2014 " + m + ":" + (s < 10 ? "0" : "") + s + " left";
+    if (window.srTimerTimeout) clearTimeout(window.srTimerTimeout);
+    window.srTimerTimeout = setTimeout(tick, 1000);
+  }
+  tick();
+})();
+</script>

@@ -40,6 +40,9 @@ class SpeedrunSettingsDialog(QDialog):
         self.mw = mw
         self.setWindowTitle("Speedrun Settings")
         self.setMinimumWidth(440)
+        from aqt.speedrun_ui import DIALOG_QSS
+
+        self.setStyleSheet(DIALOG_QSS)
 
         layout = QVBoxLayout(self)
         intro = QLabel("Enable Speedrun's learning-science features:")
